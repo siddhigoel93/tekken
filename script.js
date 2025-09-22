@@ -61,6 +61,7 @@ class Sprite {
             height: 50
         }
         this.color = color;
+        this.isAttacking = false;
     }
 
     draw() {
@@ -101,11 +102,18 @@ function animate() {
     enemy.update();
 
     player.velocity.x = 0;
+    enemy.velocity.x = 0;
     if (key.a.pressed && lastKey == 'a') {
-        player.velocity.x = -1;
+        player.velocity.x = -5;
     } else if (key.d.pressed && lastKey == 'd') {
-        player.velocity.x = 1;
+        player.velocity.x = 5;
     }
+
+    //collision detection
+    if(player.attackBox.position.x + player.attackBox.width >= enemy.position.x && player.attackBox.position.x <= enemy.position.x + enemy.width && player.attackBox.position.y + player.attackBox.height >= enemy.position.y && player.attackBox.position.y <= enemy.position.y + enemy.height && player.isAttacking){
+        console.log('collision')
+    }
+
     requestAnimationFrame(animate);
 }
 animate();
