@@ -3,46 +3,48 @@ const ctx = canvas.getContext('2d');
 canvas.width = 1024;
 canvas.height = 576;
 
-ctx.fillRect(0,0,canvas.width, canvas.height);
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+const gravity = 0.2;
 
-
-class Sprite{
-    constructor({position, velocity}){
+class Sprite {
+    constructor({ position, velocity }) {
         this.position = position;
         this.velocity = velocity;
         this.height = 150;
     }
 
-    draw(){
+    draw() {
         ctx.fillStyle = 'blue';
-        ctx.fillRect(this.position.x, this.position.y, 50 ,this.height);
+        ctx.fillRect(this.position.x, this.position.y, 50, this.height);
     }
 
-    update(){
+    update() {
         this.draw();
         this.position.y += this.velocity.y;
-        if(this.position.y + this.height >= canvas.height ){
+        if (this.position.y + this.height >= canvas.height) {
             this.velocity.y = 0;
+        } else {
+            this.velocity.y += gravity;
         }
     }
 }
 
 const player = new Sprite({
-    position:{x:0, y:0},
-    velocity:{x:0, y:0}
+    position: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 }
 });
 
 const enemy = new Sprite({
-    position:{x:100, y:100},
-    velocity:{x:0, y:2}
+    position: { x: 100, y: 100 },
+    velocity: { x: 0, y: 2 }
 });
 
 
 
 function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  player.update();
-  enemy.update();
-  requestAnimationFrame(animate);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    player.update();
+    enemy.update();
+    requestAnimationFrame(animate);
 }
 animate();
