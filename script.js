@@ -50,15 +50,24 @@ addEventListener('keyup', function (event) {
 )
 
 class Sprite {
-    constructor({ position, velocity }) {
+    constructor({ position, velocity, color = 'blue'}) {
         this.position = position;
         this.velocity = velocity;
+        this.width = 50;
         this.height = 150;
+        this.attackBox = {
+            position: this.position,
+            width: 100,
+            height: 50
+        }
+        this.color = color;
     }
 
     draw() {
-        ctx.fillStyle = 'blue';
+        ctx.fillStyle = this.color;
         ctx.fillRect(this.position.x, this.position.y, 50, this.height);
+        ctx.fillStyle = 'green';
+        ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
     }
 
     update() {
@@ -79,8 +88,9 @@ const player = new Sprite({
 });
 
 const enemy = new Sprite({
-    position: { x: 100, y: 100 },
-    velocity: { x: 0, y: 2 }
+    position: { x: 200, y: 100 },
+    velocity: { x: 0, y: 2 },
+    color: 'red'
 });
 
 
