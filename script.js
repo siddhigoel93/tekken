@@ -1,67 +1,48 @@
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width = 1024;
+canvas.height = 576;
 
-class Sprite {
-    constructor(position, velocity) {
+ctx.fillRect(0,0,canvas.width, canvas.height);
+
+
+class Sprite{
+    constructor({position, velocity}){
         this.position = position;
         this.velocity = velocity;
+        this.height = 150;
     }
 
-    update() {
-        this.position.x += this.velocity.x;
+    draw(){
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(this.position.x, this.position.y, 50 ,this.height);
+    }
+
+    update(){
+        this.draw();
         this.position.y += this.velocity.y;
-
-        if (this.position.x + spriteWidth >= innerWidth) {
-            this.position.x = innerWidth-spriteWidth;
-            this.velocity.x = 0;
-        }
-        if (this.position.x < 0) {
-            this.position.x = 0;
-            this.velocity.x = 0;
-        }
-
-        if (this.position.y + spriteHeight >= innerHeight) {
-            this.position.y = innerHeight - spriteHeight;
-            this.velocity.y = 0;
-        }
-        if (this.position.y < 0) {
-            this.position.y = 0;
+        if(this.position.y + this.height >= canvas.height ){
             this.velocity.y = 0;
         }
     }
 }
 
-const player = new Sprite(
-    { x: 100, y: 200 },
-    { x: -1, y: 1 } 
-);
+const player = new Sprite({
+    position:{x:0, y:0},
+    velocity:{x:0, y:0}
+});
 
-const playerImage = new Image();
-playerImage.src = "./resources/Idle.png";
+const enemy = new Sprite({
+    position:{x:100, y:100},
+    velocity:{x:0, y:2}
+});
 
-const spriteWidth = 160;
-const spriteHeight = 111;
-let gameFrame = 0;
-let staggerFrames = 5;
+
 
 function animate() {
-    requestAnimationFrame(animate);
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
-
-    let positionX = Math.floor(gameFrame / staggerFrames) % 8;
-    let frameX = spriteWidth * positionX;
-    let frameY = 0;
-
-    ctx.drawImage(
-        playerImage,
-        frameX, frameY, spriteWidth, spriteHeight,
-        player.position.x, player.position.y, spriteWidth, spriteHeight
-    );
-
-    player.update();
-    gameFrame++;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  player.update();
+  enemy.update();
+  requestAnimationFrame(animate);
 }
-
 animate();
