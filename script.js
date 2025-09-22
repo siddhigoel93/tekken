@@ -32,6 +32,9 @@ addEventListener('keydown', function (event) {
         case 'ArrowUp':
             player.velocity.y = -10;
             break;
+        case ' ':
+            player.attack();
+            break;
     }
 }
 )
@@ -67,8 +70,11 @@ class Sprite {
     draw() {
         ctx.fillStyle = this.color;
         ctx.fillRect(this.position.x, this.position.y, 50, this.height);
+
+        if(this.isAttacking){
         ctx.fillStyle = 'green';
         ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
+        }
     }
 
     update() {
@@ -80,6 +86,13 @@ class Sprite {
         } else {
             this.velocity.y += gravity;
         }
+    }
+
+    attack(){
+        this.isAttacking = true;
+        setTimeout(()=>{
+            this.isAttacking = false;
+        },100)
     }
 }
 
@@ -111,7 +124,8 @@ function animate() {
 
     //collision detection
     if(player.attackBox.position.x + player.attackBox.width >= enemy.position.x && player.attackBox.position.x <= enemy.position.x + enemy.width && player.attackBox.position.y + player.attackBox.height >= enemy.position.y && player.attackBox.position.y <= enemy.position.y + enemy.height && player.isAttacking){
-        console.log('collision')
+        console.log('collision');
+        player.isAttacking = false;
     }
 
     requestAnimationFrame(animate);
