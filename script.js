@@ -12,6 +12,9 @@ const key = {
     },
     d: {
         pressed: false
+    },
+    w: {
+        pressed: false
     }
 }
 
@@ -31,6 +34,7 @@ addEventListener('keydown', function (event) {
         case 'w':
         case 'ArrowUp':
             player.velocity.y = -10;
+            key.w.pressed = true;
             break;
         case ' ':
             player.attack();
@@ -53,27 +57,36 @@ addEventListener('keyup', function (event) {
 )
 
 class Sprite {
-    constructor({ position, velocity, color = 'blue'}) {
+    constructor({ position, velocity, color = 'blue', offset }) {
         this.position = position;
         this.velocity = velocity;
         this.width = 50;
         this.height = 150;
         this.attackBox = {
-            position: this.position,
+            position: {
+                x: this.position.x,
+                y: this.position.y,
+            },
+            offset,
             width: 100,
             height: 50
-        }
+        };
         this.color = color;
-        this.isAttacking = false;
+        this.isAttacking;
     }
 
     draw() {
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.position.x, this.position.y, 50, this.height);
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+        this.attackBox.position.x = this.position.x;
+        this.attackBox.position.y = this.position.y;
 
-        if(this.isAttacking){
-        ctx.fillStyle = 'green';
-        ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
+
+        this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
+        this.attackBox.position.y = this.position.y;
+        if (this.isAttacking) {
+            ctx.fillStyle = 'green';
+            ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
         }
     }
 
@@ -88,26 +101,31 @@ class Sprite {
         }
     }
 
-    attack(){
+    attack() {
         this.isAttacking = true;
-        setTimeout(()=>{
+        setTimeout(() => {
             this.isAttacking = false;
-        },100)
+        }, 100)
     }
 }
 
 const player = new Sprite({
     position: { x: 0, y: 0 },
-    velocity: { x: 0, y: 0 }
+    velocity: { x: 0, y: 0 },
+    offset: { x: 0, y: 0 }
 });
 
 const enemy = new Sprite({
     position: { x: 200, y: 100 },
     velocity: { x: 0, y: 2 },
-    color: 'red'
+    color: 'red',
+    offset: { x: -50, y: 0 }
 });
 
-
+function collision({char1, char2}){
+    return (char1.attackBox.position.x + char1.attackBox.width >= char2.position.x && char1.attackBox.position.x <= char2.position.x + char2.width && char1.attackBox.position.y + char1.attackBox.height >= char2.position.y && char1.attackBox.position.y <= char2.position.y + char2.height);
+    
+}
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -123,10 +141,15 @@ function animate() {
     }
 
     //collision detection
-    if(player.attackBox.position.x + player.attackBox.width >= enemy.position.x && player.attackBox.position.x <= enemy.position.x + enemy.width && player.attackBox.position.y + player.attackBox.height >= enemy.position.y && player.attackBox.position.y <= enemy.position.y + enemy.height && player.isAttacking){
-        console.log('collision');
+    if (collision({char1: player, char2: enemy}) && player.isAttacking){
+        console.log("collision")
         player.isAttacking = false;
     }
+    if (collision({char1: enemy, char2: player}) && enemy.isAttacking){
+        console.log("collision")
+        enemy.isAttacking = false;
+    }
+    
 
     requestAnimationFrame(animate);
 }
