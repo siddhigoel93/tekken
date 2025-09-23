@@ -6,8 +6,8 @@ canvas.height = 576;
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 const gravity = 0.5;
 const scaledCanvas = {
-    height : canvas.height/1.1,
-    width : canvas.width/1.3
+    height: canvas.height / 1.1,
+    width: canvas.width / 1.3
 }
 
 const key = {
@@ -37,10 +37,9 @@ addEventListener('keydown', function (event) {
             break;
         case 'w':
         case 'ArrowUp':
-            player.velocity.y = -10;
-            key.w.pressed = true;
-            if (player.position.y + player.height >= canvas.height - 90) {
+            if (player.jumpCount < 2) {   // allow only 2 jumps
                 player.velocity.y = -10;
+                player.jumpCount++;
             }
             break;
         case ' ':
@@ -65,56 +64,57 @@ addEventListener('keyup', function (event) {
 )
 
 class Sprite {
-    constructor({ position, imageSrc , scale=1,maxframes=1 ,offset={x:0,y:0}}) {
+    constructor({ position, imageSrc, scale = 1, maxframes = 1, offset = { x: 0, y: 0 } }) {
         this.position = position;
         this.width = 50;
         this.height = 150;
         this.image = new Image();
         this.image.src = imageSrc;
-        this.scale =scale;
+        this.scale = scale;
         this.maxframes = maxframes;
-        this.currentFrame =0;
-        this.overFrames =0;
-        this.framesHold =5;
-        this.offset =offset;
-        
+        this.currentFrame = 0;
+        this.overFrames = 0;
+        this.framesHold = 5;
+        this.offset = offset;
+
     }
 
     draw() {
         if (!this.image.complete || this.image.naturalWidth === 0) return;
-       ctx.drawImage(this.image,
-        this.currentFrame*(this.image.width/this.maxframes),0,
-        this.image.width/this.maxframes,this.image.height,
-       this.position.x-this.offset.x , this.position.y-this.offset.y,
-      (this.image.width/this.maxframes)*this.scale,
-       this.image.height*this.scale
-    )}
-    animation(){
+        ctx.drawImage(this.image,
+            this.currentFrame * (this.image.width / this.maxframes), 0,
+            this.image.width / this.maxframes, this.image.height,
+            this.position.x - this.offset.x, this.position.y - this.offset.y,
+            (this.image.width / this.maxframes) * this.scale,
+            this.image.height * this.scale
+        )
+    }
+    animation() {
         this.overFrames++;
-        if(this.overFrames % this.framesHold === 0){
-            if(this.currentFrame<this.maxframes-1){
+        if (this.overFrames % this.framesHold === 0) {
+            if (this.currentFrame < this.maxframes - 1) {
                 this.currentFrame++
-            }else{
-                this.currentFrame=0;
+            } else {
+                this.currentFrame = 0;
             }
         }
     }
     update() {
         this.draw();
         this.animation();
-}
+    }
 }
 const background = new Sprite({
-    position : {
-        x:0,
-        y:0
+    position: {
+        x: 0,
+        y: 0
     },
     imageSrc: 'resources/bg-1.jpg'
 });
 
 class Fighter extends Sprite {
-    constructor({ position, velocity, color = 'blue',imageSrc , scale=1,maxframes=1,offset={x:0,y:0},sprites}) {
-        super({ position, imageSrc, scale, maxframes , offset });
+    constructor({ position, velocity, color = 'blue', imageSrc, scale = 1, maxframes = 1, offset = { x: 0, y: 0 }, sprites }) {
+        super({ position, imageSrc, scale, maxframes, offset });
         this.position = position;
         this.velocity = velocity;
         this.width = 50;
@@ -132,24 +132,77 @@ class Fighter extends Sprite {
         this.isAttacking = false;
         this.health = 100;
         this.sprites = sprites;
-        
-        for(const sprite in this.sprites){
+        this.jumpCount = 0;
+
+        for (const sprite in this.sprites) {
             sprites[sprite].image = new Image();
             sprites[sprite].image.src = sprites[sprite].imageSrc;
         }
+        this.camerabox = {
+            position: {
+                x: this.position.x,
+                y: this.position.y
+            },
+            width: 50,
+            height: 80,
+        }
     }
 
-    
+    updateCamerabox() {
+        this.camerabox = {
+            position: {
+                x: this.position.x - 320,
+                y: this.position.y - 260
+            },
+            width: 2 * canvas.width / 3,
+            height: 2 * canvas.height / 3,
+        }
+    }
+
+
+    leftPanning({ canvas, camera }) {
+        const cameraboxRightSide = this.camerabox.position.x + this.camerabox.width;
+        if (cameraboxRightSide >= canvas.width) return;
+        if (cameraboxRightSide >= scaledCanvas.width + Math.abs(camera.position.x)) {
+            camera.position.x -= this.velocity.x;
+        }
+    }
+    rightPanning({ canvas, camera }) {
+        if (this.camerabox.position.x <= 0) return;
+        if (this.camerabox.position.x <= Math.abs(camera.position.x)) {
+            camera.position.x -= this.velocity.x;
+        }
+    }
+    // downPanning({ canvas, camera }) {
+    //     if (this.camerabox.position.y <= 0) return;
+    //     if (this.camerabox.position.y <= Math.abs(camera.position.y)) {
+    //         camera.position.y -= this.velocity.y;
+    //     }
+    // }
+    // upPanning({ canvas, camera }) {
+    //     if (this.camerabox.position.y <= 0) return;
+    //     if (this.camerabox.position.y + this.camerabox.position.y <= Math.abs(camera.position.y)) {
+    //         camera.position.y -= this.velocity.y;
+    //     }
+    // }
 
     update() {
+        ctx.fillStyle = 'rgba(0,0,255,0.2)';
+        ctx.fillRect(this.camerabox.position.x, this.camerabox.position.y, this.camerabox.width, this.camerabox.height)
+        this.updateCamerabox();
         this.draw();
         this.animation();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
-        if (this.position.y + this.height >= canvas.height-90) {
+        if (this.position.y + this.height >= canvas.height - 90) {
             this.velocity.y = 0;
+            this.position.y = canvas.height - 90 - this.height;
+            this.jumpCount = 0;
         } else {
             this.velocity.y += gravity;
+        }
+        if (this.position.x <= 0 || this.position.x + this.attackBox.width >= canvas.width) {
+            this.velocity.x = 0;
         }
     }
 
@@ -160,37 +213,37 @@ class Fighter extends Sprite {
         }, 100)
     }
 
-    switchSprite(sprite){
-        if(this.image === this.sprites.attack1.image  && this.currentFrame < this.sprites.attack1.maxframes-1) return;
-        switch(sprite){
+    switchSprite(sprite) {
+        if (this.image === this.sprites.attack1.image && this.currentFrame < this.sprites.attack1.maxframes - 1) return;
+        switch (sprite) {
             case 'idle':
-                if(this.image !== this.sprites.idle.image){
-                this.image = this.sprites.idle.image;
-                this.maxframes = this.sprites.idle.maxframes;
+                if (this.image !== this.sprites.idle.image) {
+                    this.image = this.sprites.idle.image;
+                    this.maxframes = this.sprites.idle.maxframes;
                 }
                 break;
             case 'run':
-                if(this.image !== this.sprites.run.image){
-                this.image = this.sprites.run.image;
-            this.maxframes = this.sprites.run.maxframes;
+                if (this.image !== this.sprites.run.image) {
+                    this.image = this.sprites.run.image;
+                    this.maxframes = this.sprites.run.maxframes;
                 }
                 break;
             case 'jump':
-                if(this.image !== this.sprites.jump.image){
-                this.image = this.sprites.jump.image;
-            this.maxframes = this.sprites.jump.maxframes;
+                if (this.image !== this.sprites.jump.image) {
+                    this.image = this.sprites.jump.image;
+                    this.maxframes = this.sprites.jump.maxframes;
                 }
                 break;
-                case 'fall':
-                if(this.image !== this.sprites.fall.image){
-                this.image = this.sprites.fall.image;
-                this.maxframes = this.sprites.fall.maxframes;
+            case 'fall':
+                if (this.image !== this.sprites.fall.image) {
+                    this.image = this.sprites.fall.image;
+                    this.maxframes = this.sprites.fall.maxframes;
                 }
                 break;
-                case 'attack1':
-                if(this.image !== this.sprites.attack1.image){
-                this.image = this.sprites.attack1.image;
-                this.maxframes = this.sprites.attack1.maxframes;
+            case 'attack1':
+                if (this.image !== this.sprites.attack1.image) {
+                    this.image = this.sprites.attack1.image;
+                    this.maxframes = this.sprites.attack1.maxframes;
                 }
                 break;
         }
@@ -199,32 +252,32 @@ class Fighter extends Sprite {
 
 
 const player = new Fighter({
-    position: { x: 0, y: 0 },
+    position: { x: 100, y: 0 },
     velocity: { x: 0, y: 0 },
     offset: { x: 205, y: 140 },
     imageSrc: 'resources/Idle.png',
-    maxframes : 8,
-    scale:2.5,
-    sprites:{
-        'idle':{
+    maxframes: 8,
+    scale: 2.5,
+    sprites: {
+        'idle': {
             imageSrc: 'resources/Idle.png',
-            maxframes:8
+            maxframes: 8
         },
-        'run':{
+        'run': {
             imageSrc: 'resources/Run.png',
-            maxframes:8
-        } ,
-        'jump':{
-            imageSrc: 'resources/Jump.png',
-            maxframes:2
-        } ,   
-        'fall':{
-            imageSrc: 'resources/Fall.png',
-            maxframes:2
+            maxframes: 8
         },
-        'attack1':{
+        'jump': {
+            imageSrc: 'resources/Jump.png',
+            maxframes: 2
+        },
+        'fall': {
+            imageSrc: 'resources/Fall.png',
+            maxframes: 2
+        },
+        'attack1': {
             imageSrc: 'resources/Attack1.png',
-            maxframes:4
+            maxframes: 4
         }
     }
 });
@@ -234,8 +287,8 @@ const enemy = new Fighter({
     velocity: { x: 0, y: 2 },
     color: 'red',
     offset: { x: -50, y: 0 },
-    
-    
+
+
 });
 
 function collision({ char1, char2 }) {
@@ -243,7 +296,7 @@ function collision({ char1, char2 }) {
 
 }
 
-function determineResults({ player, enemy, timerId}) {
+function determineResults({ player, enemy, timerId }) {
     clearTimeout(timerId);
     document.querySelector('.result-text').style.display = 'flex';
     if (player.health == enemy.health) {
@@ -266,36 +319,55 @@ function timerHandler() {
         document.querySelector('.timer').innerHTML = timer;
     }
     if (timer == 0) {
-        determineResults({player,enemy, timerId});
+        determineResults({ player, enemy, timerId });
     }
 }
 
 timerHandler();
 
+const backgroundImgHeight = 618;
+const camera = {
+    position: {
+        x: 0,
+        y: -backgroundImgHeight + scaledCanvas.height
+    },
+}
+
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save()
-    ctx.scale(1.3,1.1);
-    ctx.translate(0, -background.image.height + scaledCanvas.height)
+    ctx.scale(1.3, 1.1);
+    ctx.translate(camera.position.x, camera.position.y)
     background.update();
     ctx.restore();
     player.update();
     // enemy.update();
-    
+
     player.velocity.x = 0;
     enemy.velocity.x = 0;
     player.switchSprite('idle');
     if (key.a.pressed && lastKey == 'a') {
-        player.velocity.x = -5;
-       player.switchSprite('run')
+        if (player.position.x - 40 <= 0) {
+            player.velocity.x = 0;
+        } else {
+            player.velocity.x = -5;
+        }
+        player.switchSprite('run')
+        player.rightPanning({ canvas, camera });
     } else if (key.d.pressed && lastKey == 'd') {
-        player.velocity.x = 5;
+        if (player.position.x + player.attackBox.width >= canvas.width) {
+            player.velocity.x = 0;
+        } else {
+            player.velocity.x = 5;
+        }
         player.switchSprite('run');
+        player.leftPanning({ canvas, camera });
     }
 
-    if(player.velocity.y <0){
+    if (player.velocity.y < 0) {
+        // player.downPanning({ canvas, camera });
         player.switchSprite('jump');
-    }else if(player.velocity.y>0)
+    } else if (player.velocity.y > 0)
         player.switchSprite('fall');
 
     //collision detection
@@ -311,7 +383,7 @@ function animate() {
     }
 
     if (player.health <= 0 || enemy.health <= 0) {
-        determineResults({player,enemy,timerId});
+        determineResults({ player, enemy, timerId });
     }
 
     requestAnimationFrame(animate);
