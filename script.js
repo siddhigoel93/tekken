@@ -5,6 +5,10 @@ canvas.height = 576;
 
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 const gravity = 0.5;
+const scaledCanvas = {
+    height : canvas.height/1.1,
+    width : canvas.width/1.3
+}
 
 const key = {
     a: {
@@ -72,7 +76,6 @@ class Sprite {
 
     update() {
         this.draw();
-        
 }
 }
 const background = new Sprite({
@@ -187,7 +190,11 @@ timerHandler();
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save()
+    ctx.scale(1.3,1.1);
+    ctx.translate(0, -background.image.height + scaledCanvas.height)
     background.update();
+    ctx.restore();
     player.update();
     enemy.update();
     
