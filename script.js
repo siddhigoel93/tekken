@@ -35,6 +35,9 @@ addEventListener('keydown', function (event) {
         case 'ArrowUp':
             player.velocity.y = -10;
             key.w.pressed = true;
+            if (player.position.y + player.height >= canvas.height - 90) {
+                player.velocity.y = -10;
+            }
             break;
         case ' ':
             player.attack();
@@ -57,22 +60,43 @@ addEventListener('keyup', function (event) {
 )
 
 class Sprite {
-    constructor({ position, imageSrc }) {
+    constructor({ position, imageSrc , scale=1,maxframes=1 ,offset={x:0,y:0}}) {
         this.position = position;
         this.width = 50;
         this.height = 150;
         this.image = new Image();
         this.image.src = imageSrc;
+        this.scale =scale;
+        this.maxframes = maxframes;
+        this.currentFrame =0;
+        this.overFrames =0;
+        this.framesHold =5;
+        this.offset =offset;
         
     }
 
     draw() {
-       ctx.drawImage(this.image , this.position.x , this.position.y); 
+        if (!this.image.complete || this.image.naturalWidth === 0) return;
+       ctx.drawImage(this.image,
+        this.currentFrame*(this.image.width/this.maxframes),0,
+        this.image.width/this.maxframes,this.image.height,
+       this.position.x-this.offset.x , this.position.y-this.offset.y,
+      (this.image.width/this.maxframes)*this.scale,
+       this.image.height*this.scale
+    )}
+    animation(){
+        this.overFrames++;
+        if(this.overFrames % this.framesHold === 0){
+            if(this.currentFrame<this.maxframes-1){
+                this.currentFrame++
+            }else{
+                this.currentFrame=0;
+            }
+        }
     }
-
     update() {
         this.draw();
-        
+        this.animation();
 }
 }
 const background = new Sprite({
@@ -83,8 +107,9 @@ const background = new Sprite({
     imageSrc: 'resources/bg-1.jpg'
 });
 
-class Fighter {
-    constructor({ position, velocity, color = 'blue', offset }) {
+class Fighter extends Sprite {
+    constructor({ position, velocity, color = 'blue',imageSrc , scale=1,maxframes=1,offset={x:0,y:0}}) {
+        super({ position, imageSrc, scale, maxframes , offset });
         this.position = position;
         this.velocity = velocity;
         this.width = 50;
@@ -99,27 +124,16 @@ class Fighter {
             height: 50
         };
         this.color = color;
-        this.isAttacking;
+        this.isAttacking = false;
         this.health = 100;
+        
     }
 
-    draw() {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
-        this.attackBox.position.x = this.position.x;
-        this.attackBox.position.y = this.position.y;
-
-
-        this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
-        this.attackBox.position.y = this.position.y;
-        if (this.isAttacking) {
-            ctx.fillStyle = 'green';
-            ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
-        }
-    }
+    
 
     update() {
         this.draw();
+        this.animation();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
         if (this.position.y + this.height >= canvas.height-90) {
@@ -141,14 +155,18 @@ class Fighter {
 const player = new Fighter({
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
-    offset: { x: 0, y: 0 }
+    offset: { x: 205, y: 140 },
+    imageSrc: 'resources/Idle.png',
+    maxframes : 8,
+    scale:2.5
 });
 
 const enemy = new Fighter({
     position: { x: 200, y: 100 },
     velocity: { x: 0, y: 2 },
     color: 'red',
-    offset: { x: -50, y: 0 }
+    offset: { x: -50, y: 0 },
+    
 });
 
 function collision({ char1, char2 }) {
@@ -189,7 +207,7 @@ function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     background.update();
     player.update();
-    enemy.update();
+    // enemy.update();
     
     player.velocity.x = 0;
     enemy.velocity.x = 0;
