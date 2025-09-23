@@ -40,6 +40,7 @@ addEventListener('keydown', function (event) {
             }
             break;
         case ' ':
+            player.switchSprite('attack1');
             player.attack();
             break;
     }
@@ -156,6 +157,7 @@ class Fighter extends Sprite {
     }
 
     switchSprite(sprite){
+        if(this.image === this.sprites.attack1.image  && this.currentFrame < this.sprites.attack1.maxframes-1) return;
         switch(sprite){
             case 'idle':
                 if(this.image !== this.sprites.idle.image){
@@ -173,6 +175,18 @@ class Fighter extends Sprite {
                 if(this.image !== this.sprites.jump.image){
                 this.image = this.sprites.jump.image;
             this.maxframes = this.sprites.jump.maxframes;
+                }
+                break;
+                case 'fall':
+                if(this.image !== this.sprites.fall.image){
+                this.image = this.sprites.fall.image;
+                this.maxframes = this.sprites.fall.maxframes;
+                }
+                break;
+                case 'attack1':
+                if(this.image !== this.sprites.attack1.image){
+                this.image = this.sprites.attack1.image;
+                this.maxframes = this.sprites.attack1.maxframes;
                 }
                 break;
         }
@@ -200,6 +214,14 @@ const player = new Fighter({
             imageSrc: 'resources/Jump.png',
             maxframes:2
         } ,   
+        'fall':{
+            imageSrc: 'resources/Fall.png',
+            maxframes:2
+        },
+        'attack1':{
+            imageSrc: 'resources/Attack1.png',
+            maxframes:4
+        }
     }
 });
 
@@ -265,7 +287,8 @@ function animate() {
 
     if(player.velocity.y <0){
         player.switchSprite('jump');
-    }
+    }else if(player.velocity.y>0)
+        player.switchSprite('fall');
 
     //collision detection
     if (collision({ char1: player, char2: enemy }) && player.isAttacking) {
