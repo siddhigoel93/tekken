@@ -57,6 +57,33 @@ addEventListener('keyup', function (event) {
 )
 
 class Sprite {
+    constructor({ position, imageSrc }) {
+        this.position = position;
+        this.width = 50;
+        this.height = 150;
+        this.image = new Image();
+        this.image.src = imageSrc;
+        
+    }
+
+    draw() {
+       ctx.drawImage(this.image , this.position.x , this.position.y); 
+    }
+
+    update() {
+        this.draw();
+        
+}
+}
+const background = new Sprite({
+    position : {
+        x:0,
+        y:0
+    },
+    imageSrc: 'resources/bg-1.jpg'
+});
+
+class Fighter {
     constructor({ position, velocity, color = 'blue', offset }) {
         this.position = position;
         this.velocity = velocity;
@@ -95,7 +122,7 @@ class Sprite {
         this.draw();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
-        if (this.position.y + this.height >= canvas.height) {
+        if (this.position.y + this.height >= canvas.height-90) {
             this.velocity.y = 0;
         } else {
             this.velocity.y += gravity;
@@ -110,13 +137,14 @@ class Sprite {
     }
 }
 
-const player = new Sprite({
+
+const player = new Fighter({
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
     offset: { x: 0, y: 0 }
 });
 
-const enemy = new Sprite({
+const enemy = new Fighter({
     position: { x: 200, y: 100 },
     velocity: { x: 0, y: 2 },
     color: 'red',
@@ -159,9 +187,10 @@ timerHandler();
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    background.update();
     player.update();
     enemy.update();
-
+    
     player.velocity.x = 0;
     enemy.velocity.x = 0;
     if (key.a.pressed && lastKey == 'a') {
