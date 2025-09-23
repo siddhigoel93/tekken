@@ -35,8 +35,12 @@ addEventListener('keydown', function (event) {
         case 'ArrowUp':
             player.velocity.y = -10;
             key.w.pressed = true;
+            if (player.position.y + player.height >= canvas.height - 90) {
+                player.velocity.y = -10;
+            }
             break;
         case ' ':
+            player.switchSprite('attack1');
             player.attack();
             break;
     }
@@ -57,22 +61,43 @@ addEventListener('keyup', function (event) {
 )
 
 class Sprite {
-    constructor({ position, imageSrc }) {
+    constructor({ position, imageSrc , scale=1,maxframes=1 ,offset={x:0,y:0}}) {
         this.position = position;
         this.width = 50;
         this.height = 150;
         this.image = new Image();
         this.image.src = imageSrc;
+        this.scale =scale;
+        this.maxframes = maxframes;
+        this.currentFrame =0;
+        this.overFrames =0;
+        this.framesHold =5;
+        this.offset =offset;
         
     }
 
     draw() {
-       ctx.drawImage(this.image , this.position.x , this.position.y); 
+        if (!this.image.complete || this.image.naturalWidth === 0) return;
+       ctx.drawImage(this.image,
+        this.currentFrame*(this.image.width/this.maxframes),0,
+        this.image.width/this.maxframes,this.image.height,
+       this.position.x-this.offset.x , this.position.y-this.offset.y,
+      (this.image.width/this.maxframes)*this.scale,
+       this.image.height*this.scale
+    )}
+    animation(){
+        this.overFrames++;
+        if(this.overFrames % this.framesHold === 0){
+            if(this.currentFrame<this.maxframes-1){
+                this.currentFrame++
+            }else{
+                this.currentFrame=0;
+            }
+        }
     }
-
     update() {
         this.draw();
-        
+        this.animation();
 }
 }
 const background = new Sprite({
@@ -83,8 +108,9 @@ const background = new Sprite({
     imageSrc: 'resources/bg-1.jpg'
 });
 
-class Fighter {
-    constructor({ position, velocity, color = 'blue', offset }) {
+class Fighter extends Sprite {
+    constructor({ position, velocity, color = 'blue',imageSrc , scale=1,maxframes=1,offset={x:0,y:0},sprites}) {
+        super({ position, imageSrc, scale, maxframes , offset });
         this.position = position;
         this.velocity = velocity;
         this.width = 50;
@@ -99,27 +125,21 @@ class Fighter {
             height: 50
         };
         this.color = color;
-        this.isAttacking;
+        this.isAttacking = false;
         this.health = 100;
-    }
-
-    draw() {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
-        this.attackBox.position.x = this.position.x;
-        this.attackBox.position.y = this.position.y;
-
-
-        this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
-        this.attackBox.position.y = this.position.y;
-        if (this.isAttacking) {
-            ctx.fillStyle = 'green';
-            ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
+        this.sprites = sprites;
+        
+        for(const sprite in this.sprites){
+            sprites[sprite].image = new Image();
+            sprites[sprite].image.src = sprites[sprite].imageSrc;
         }
     }
 
+    
+
     update() {
         this.draw();
+        this.animation();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
         if (this.position.y + this.height >= canvas.height-90) {
@@ -135,20 +155,83 @@ class Fighter {
             this.isAttacking = false;
         }, 100)
     }
+
+    switchSprite(sprite){
+        if(this.image === this.sprites.attack1.image  && this.currentFrame < this.sprites.attack1.maxframes-1) return;
+        switch(sprite){
+            case 'idle':
+                if(this.image !== this.sprites.idle.image){
+                this.image = this.sprites.idle.image;
+                this.maxframes = this.sprites.idle.maxframes;
+                }
+                break;
+            case 'run':
+                if(this.image !== this.sprites.run.image){
+                this.image = this.sprites.run.image;
+            this.maxframes = this.sprites.run.maxframes;
+                }
+                break;
+            case 'jump':
+                if(this.image !== this.sprites.jump.image){
+                this.image = this.sprites.jump.image;
+            this.maxframes = this.sprites.jump.maxframes;
+                }
+                break;
+                case 'fall':
+                if(this.image !== this.sprites.fall.image){
+                this.image = this.sprites.fall.image;
+                this.maxframes = this.sprites.fall.maxframes;
+                }
+                break;
+                case 'attack1':
+                if(this.image !== this.sprites.attack1.image){
+                this.image = this.sprites.attack1.image;
+                this.maxframes = this.sprites.attack1.maxframes;
+                }
+                break;
+        }
+    }
 }
 
 
 const player = new Fighter({
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
-    offset: { x: 0, y: 0 }
+    offset: { x: 205, y: 140 },
+    imageSrc: 'resources/Idle.png',
+    maxframes : 8,
+    scale:2.5,
+    sprites:{
+        'idle':{
+            imageSrc: 'resources/Idle.png',
+            maxframes:8
+        },
+        'run':{
+            imageSrc: 'resources/Run.png',
+            maxframes:8
+        } ,
+        'jump':{
+            imageSrc: 'resources/Jump.png',
+            maxframes:2
+        } ,   
+        'fall':{
+            imageSrc: 'resources/Fall.png',
+            maxframes:2
+        },
+        'attack1':{
+            imageSrc: 'resources/Attack1.png',
+            maxframes:4
+        }
+    }
 });
 
 const enemy = new Fighter({
     position: { x: 200, y: 100 },
     velocity: { x: 0, y: 2 },
     color: 'red',
-    offset: { x: -50, y: 0 }
+    offset: { x: -50, y: 0 },
+    
+    
 });
 
 function collision({ char1, char2 }) {
@@ -189,15 +272,23 @@ function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     background.update();
     player.update();
-    enemy.update();
+    // enemy.update();
     
     player.velocity.x = 0;
     enemy.velocity.x = 0;
+    player.switchSprite('idle');
     if (key.a.pressed && lastKey == 'a') {
         player.velocity.x = -5;
+       player.switchSprite('run')
     } else if (key.d.pressed && lastKey == 'd') {
         player.velocity.x = 5;
+        player.switchSprite('run');
     }
+
+    if(player.velocity.y <0){
+        player.switchSprite('jump');
+    }else if(player.velocity.y>0)
+        player.switchSprite('fall');
 
     //collision detection
     if (collision({ char1: player, char2: enemy }) && player.isAttacking) {
