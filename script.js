@@ -108,7 +108,7 @@ const background = new Sprite({
 });
 
 class Fighter extends Sprite {
-    constructor({ position, velocity, color = 'blue',imageSrc , scale=1,maxframes=1,offset={x:0,y:0}}) {
+    constructor({ position, velocity, color = 'blue',imageSrc , scale=1,maxframes=1,offset={x:0,y:0},sprites}) {
         super({ position, imageSrc, scale, maxframes , offset });
         this.position = position;
         this.velocity = velocity;
@@ -126,7 +126,12 @@ class Fighter extends Sprite {
         this.color = color;
         this.isAttacking = false;
         this.health = 100;
+        this.sprites = sprites;
         
+        for(const sprite in this.sprites){
+            sprites[sprite].image = new Image();
+            sprites[sprite].image.src = sprites[sprite].imageSrc;
+        }
     }
 
     
@@ -149,6 +154,20 @@ class Fighter extends Sprite {
             this.isAttacking = false;
         }, 100)
     }
+
+    switchSprite(sprite){
+        switch(sprite){
+            case 'idle':
+                this.image = this.sprites.idle.image;
+                break;
+            case 'run':
+                this.image = this.sprites.run.image;
+                break;
+            case 'jump':
+                this.image = this.sprites.jump.image;
+                break;
+        }
+    }
 }
 
 
@@ -158,7 +177,21 @@ const player = new Fighter({
     offset: { x: 205, y: 140 },
     imageSrc: 'resources/Idle.png',
     maxframes : 8,
-    scale:2.5
+    scale:2.5,
+    sprites:{
+        'idle':{
+            imageSrc: 'resources/Idle.png',
+            maxframes:8
+        },
+        'run':{
+            imageSrc: 'resources/Run.png',
+            maxframes:8
+        } ,
+        'jump':{
+            imageSrc: 'resources/Jump.png',
+            maxframes:2
+        } ,   
+    }
 });
 
 const enemy = new Fighter({
@@ -166,6 +199,7 @@ const enemy = new Fighter({
     velocity: { x: 0, y: 2 },
     color: 'red',
     offset: { x: -50, y: 0 },
+    
     
 });
 
@@ -211,10 +245,13 @@ function animate() {
     
     player.velocity.x = 0;
     enemy.velocity.x = 0;
+    player.switchSprite('idle');
     if (key.a.pressed && lastKey == 'a') {
         player.velocity.x = -5;
+       player.switchSprite('run')
     } else if (key.d.pressed && lastKey == 'd') {
         player.velocity.x = 5;
+        player.switchSprite('idle');
     }
 
     //collision detection
