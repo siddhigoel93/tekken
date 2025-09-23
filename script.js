@@ -122,7 +122,7 @@ class Fighter {
         this.draw();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
-        if (this.position.y + this.height >= canvas.height) {
+        if (this.position.y + this.height >= canvas.height-90) {
             this.velocity.y = 0;
         } else {
             this.velocity.y += gravity;
