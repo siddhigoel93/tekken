@@ -73,7 +73,7 @@ class Sprite {
         };
         this.color = color;
         this.isAttacking;
-        this.health =100;
+        this.health = 100;
     }
 
     draw() {
@@ -123,10 +123,39 @@ const enemy = new Sprite({
     offset: { x: -50, y: 0 }
 });
 
-function collision({char1, char2}){
+function collision({ char1, char2 }) {
     return (char1.attackBox.position.x + char1.attackBox.width >= char2.position.x && char1.attackBox.position.x <= char2.position.x + char2.width && char1.attackBox.position.y + char1.attackBox.height >= char2.position.y && char1.attackBox.position.y <= char2.position.y + char2.height);
-    
+
 }
+
+function determineResults({ player, enemy, timerId}) {
+    clearTimeout(timerId);
+    document.querySelector('.result-text').style.display = 'flex';
+    if (player.health == enemy.health) {
+        document.querySelector('.result-text').innerHTML = 'Tie!';
+    }
+    else if (player.health > enemy.health) {
+        document.querySelector('.result-text').innerHTML = 'You Won!';
+    }
+    else {
+        document.querySelector('.result-text').innerHTML = 'You Lose!';
+    }
+}
+
+let timer = 15;
+let timerId;
+function timerHandler() {
+    timerId = setTimeout(timerHandler, 1000);
+    if (timer > 0) {
+        timer--;
+        document.querySelector('.timer').innerHTML = timer;
+    }
+    if (timer == 0) {
+        determineResults({player,enemy, timerId});
+    }
+}
+
+timerHandler();
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -142,17 +171,20 @@ function animate() {
     }
 
     //collision detection
-    if (collision({char1: player, char2: enemy}) && player.isAttacking){
+    if (collision({ char1: player, char2: enemy }) && player.isAttacking) {
         enemy.health -= 20
         document.querySelector(".enemy-health").style.width = enemy.health + '%';
         player.isAttacking = false;
     }
-    if (collision({char1: enemy, char2: player}) && enemy.isAttacking){
+    if (collision({ char1: enemy, char2: player }) && enemy.isAttacking) {
         player.health -= 20
         document.querySelector(".player-health").style.width = player.health + '%';
         enemy.isAttacking = false;
     }
-    
+
+    if (player.health <= 0 || enemy.health <= 0) {
+        determineResults({player,enemy,timerId});
+    }
 
     requestAnimationFrame(animate);
 }
