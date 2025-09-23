@@ -158,13 +158,22 @@ class Fighter extends Sprite {
     switchSprite(sprite){
         switch(sprite){
             case 'idle':
+                if(this.image !== this.sprites.idle.image){
                 this.image = this.sprites.idle.image;
+                this.maxframes = this.sprites.idle.maxframes;
+                }
                 break;
             case 'run':
+                if(this.image !== this.sprites.run.image){
                 this.image = this.sprites.run.image;
+            this.maxframes = this.sprites.run.maxframes;
+                }
                 break;
             case 'jump':
+                if(this.image !== this.sprites.jump.image){
                 this.image = this.sprites.jump.image;
+            this.maxframes = this.sprites.jump.maxframes;
+                }
                 break;
         }
     }
@@ -251,7 +260,11 @@ function animate() {
        player.switchSprite('run')
     } else if (key.d.pressed && lastKey == 'd') {
         player.velocity.x = 5;
-        player.switchSprite('idle');
+        player.switchSprite('run');
+    }
+
+    if(player.velocity.y <0){
+        player.switchSprite('jump');
     }
 
     //collision detection
