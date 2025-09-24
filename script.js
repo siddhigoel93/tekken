@@ -295,7 +295,7 @@ function determineResults({ player, enemy, timerId }) {
     }
     else {
         // document.querySelector('.result-text').innerHTML = 'You Lose!';
-        result = 'You Lose!';
+        result = 'You Lost!';
     }
     drawEndScreen(result);
 }
@@ -340,7 +340,13 @@ addEventListener('keydown', function (event) {
             lastKey = 'a';
             player.facingRight = false;  // Immediately face left on left key
             break;
-        // rest of keys...
+        case 'w' :
+            case 'ArrowUp':
+            if (player.velocity.y === 0) {  
+                player.velocity.y = -15;     
+            }  
+            break;
+
     }
 });
 
@@ -601,7 +607,7 @@ function drawStartscreen(){
 function drawEndScreen(result){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     background.update();
-    
+
     ctx.fillStyle= 'rgba(0,0,0,0.6)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
