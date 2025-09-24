@@ -23,7 +23,6 @@ h1{
     color: white;
     font-size: 2.5rem;
     margin-bottom: 10px;
-    /* font-family: Pixelify sans; */
 }
 canvas{
     background-color: black;
@@ -50,7 +49,7 @@ canvas{
     justify-content: center;
     background-color: blueviolet;
     width: 100px;
-    height: 100px;
+    height: 60px;
     flex-shrink: 0;
 }
 
@@ -97,7 +96,7 @@ canvas{
     width: 100%;
 }
 
-.result-text{
+/* .result-text{
     position: absolute;
     color: white;
     align-items: center;
@@ -106,4 +105,4 @@ canvas{
     bottom: 0;
     width: 100%;
     display: none;
-}
+} */
