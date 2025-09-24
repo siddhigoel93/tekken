@@ -23,28 +23,36 @@ class Sprite {
     }
 
     draw() {
-        if (!this.image.complete || this.image.naturalWidth === 0) return;
+        ctx.save();
 
-        // ctx.save();
-
-        // if (!this.facingRight) {
-        //     ctx.translate(this.position.x + (this.width * this.scale) / 2, this.position.y - this.offset.y);
-        //     ctx.scale(-1, 1);
-        //     ctx.translate(-this.position.x - (this.width * this.scale) / 2, -(this.position.y - this.offset.y));
-        // }
+        if (!this.facingRight) {
+            // Flip horizontally around character center
+            ctx.translate(
+                this.position.x + (this.width * this.scale) / 2,
+                this.position.y - this.offset.y
+            );
+            ctx.scale(-1, 1);
+            ctx.translate(
+                -(this.position.x + (this.width * this.scale) / 2),
+                -(this.position.y - this.offset.y)
+            );
+        }
 
         ctx.drawImage(
             this.image,
-            this.framesCurrent * (this.image.width / this.framesMax), 0,
-            this.image.width / this.framesMax, this.image.height,
+            this.framesCurrent * (this.image.width / this.framesMax),
+            0,
+            this.image.width / this.framesMax,
+            this.image.height,
             this.position.x - this.offset.x,
             this.position.y - this.offset.y,
             (this.image.width / this.framesMax) * this.scale,
             this.image.height * this.scale
         );
 
-        // ctx.restore();
+        ctx.restore();
     }
+
 
     animation() {
         this.framesElapsed++;
@@ -103,6 +111,7 @@ class Fighter extends Sprite {
         this.framesHold = 5
         this.sprites = sprites
         this.dead = false
+        this.facingRight = true;
 
         for (const sprite in this.sprites) {
             sprites[sprite].image = new Image()
@@ -158,6 +167,13 @@ class Fighter extends Sprite {
 
     update() {
         this.draw();
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)'
+        ctx.fillRect(
+            this.attackBox.position.x,
+            this.attackBox.position.y,
+            this.attackBox.width,
+            this.attackBox.height
+        )
         if (!this.dead) this.animation()
         // update attack box position depending on offset
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x
@@ -385,7 +401,7 @@ const player = new Fighter({
         takeHit: { imageSrc: './resources/Take Hit - white silhouette.png', framesMax: 4 },
         death: { imageSrc: './resources/Death.png', framesMax: 6 }
     },
-    attackBox: { offset: { x: 100, y: 50 }, width: 160, height: 50 }
+    attackBox: { offset: { x: -80, y: 70 }, width: 160, height: 50 }
 });
 
 const enemy = new Fighter({
@@ -441,8 +457,8 @@ const enemy = new Fighter({
     },
     attackBox: {
         offset: {
-            x: -170,
-            y: 50
+            x: -20,
+            y: 70
         },
         width: 170,
         height: 50
@@ -513,12 +529,6 @@ function animate() {
     // Enemy AI behavior: follow player and attack when close
     const distanceToPlayer = player.position.x - enemy.position.x;
 
-    // Enemy faces player always
-    enemy.facingRight = distanceToPlayer < 0;
-
-
-    // Player faces enemy always
-    // player.facingRight = distanceToPlayer > 0 ? true : false;
 
     // Enemy follow player movement if distance is significant
     if (Math.abs(distanceToPlayer) > 20) {
