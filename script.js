@@ -386,7 +386,7 @@ function animate() {
 
     // --- Enemy AI (improved) ---
     const distanceToPlayer = player.position.x - enemy.position.x;
-    enemy.facingRight = distanceToPlayer > 0;
+    enemy.facingRight = distanceToPlayer < 0;
 
     // Movement behaviour
     if (Math.abs(distanceToPlayer) > 80) {
