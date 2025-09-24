@@ -23,35 +23,31 @@ class Sprite {
     }
 
     draw() {
-        ctx.save();
+    if (!this.image.complete || this.image.naturalWidth === 0) return;
 
-        if (!this.facingRight) {
-            // Flip horizontally around character center
-            ctx.translate(
-                this.position.x + (this.width * this.scale) / 2,
-                this.position.y - this.offset.y
-            );
-            ctx.scale(-1, 1);
-            ctx.translate(
-                -(this.position.x + (this.width * this.scale) / 2),
-                -(this.position.y - this.offset.y)
-            );
-        }
+    ctx.save();
 
-        ctx.drawImage(
-            this.image,
-            this.framesCurrent * (this.image.width / this.framesMax),
-            0,
-            this.image.width / this.framesMax,
-            this.image.height,
-            this.position.x - this.offset.x,
-            this.position.y - this.offset.y,
-            (this.image.width / this.framesMax) * this.scale,
-            this.image.height * this.scale
-        );
-
-        ctx.restore();
+    // Horizontal flip if facing left
+    if (!this.facingRight) {
+        // Move to the sprite center
+        ctx.translate(this.position.x - (this.width * this.scale) / 2, this.position.y - this.offset.y);
+        ctx.scale(-1, 1);
+        ctx.translate(-(this.position.x + (this.width * this.scale) / 2), -(this.position.y - this.offset.y));
     }
+
+    ctx.drawImage(
+        this.image,
+        this.framesCurrent * (this.image.width / this.framesMax), 0,
+        this.image.width / this.framesMax, this.image.height,
+        this.position.x - this.offset.x,
+        this.position.y - this.offset.y,
+        (this.image.width / this.framesMax) * this.scale,
+        this.image.height * this.scale
+    );
+
+    ctx.restore();
+}
+
 
 
     animation() {
@@ -152,28 +148,10 @@ class Fighter extends Sprite {
             camera.position.x -= this.velocity.x;
         }
     }
-    // downPanning({ canvas, camera }) {
-    //     if (this.camerabox.position.y <= 0) return;
-    //     if (this.camerabox.position.y <= Math.abs(camera.position.y)) {
-    //         camera.position.y -= this.velocity.y;
-    //     }
-    // }
-    // upPanning({ canvas, camera }) {
-    //     if (this.camerabox.position.y <= 0) return;
-    //     if (this.camerabox.position.y + this.camerabox.position.y <= Math.abs(camera.position.y)) {
-    //         camera.position.y -= this.velocity.y;
-    //     }
-    // }
+
 
     update() {
         this.draw();
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)'
-        ctx.fillRect(
-            this.attackBox.position.x,
-            this.attackBox.position.y,
-            this.attackBox.width,
-            this.attackBox.height
-        )
         if (!this.dead) this.animation()
         // update attack box position depending on offset
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x
@@ -498,8 +476,13 @@ function animate() {
     ctx.translate(camera.position.x, camera.position.y);
     background.update();
     ctx.restore();
-
     player.update();
+    if (enemy.position.x > player.position.x -150) {
+        enemy.facingRight = true;   // face right if player is to the right
+    } else{
+        enemy.facingRight = false;  // face left if player is to the left
+    }
+
     enemy.update();
 
     // Reset horizontal velocity before processing input/AI
