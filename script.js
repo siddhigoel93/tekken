@@ -4,6 +4,7 @@ canvas.width = 1024;
 canvas.height = 576;
 ctx.fillRect(0, 0, canvas.width, canvas.height)
 const gravity = 0.7;
+let isGameStarted = false;
 
 // classes
 class Sprite {
@@ -562,4 +563,38 @@ function animate() {
 
     requestAnimationFrame(animate);
 }
-animate();
+
+function drawStartscreen(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    background.update();
+
+    ctx.fillStyle= 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    const boxW = 300;
+    const boxH = 120;
+    const boxX = (canvas.width / 2) - (boxW / 2);
+    const boxY = (canvas.height / 2) - (boxH / 2);
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    ctx.fillStyle='black';
+    ctx.font = '40px Pixelify Sans';
+    ctx.textAlign='center';
+    ctx.fillText('Click to play' , canvas.width/2 , canvas.height/2);
+
+}
+background.image.onload = () => {
+    drawStartscreen();
+};
+
+canvas.addEventListener('click', () => {
+    if (!isGameStarted) {
+        isGameStarted = true;
+        animate();
+        timerHandler();
+    }
+});
