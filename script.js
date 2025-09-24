@@ -177,9 +177,13 @@ update() {
     } else {
         this.velocity.y += gravity;
     }
-    if (this.position.x <= 0 || this.position.x + this.attackBox.width >= canvas.width) {
-        this.velocity.x = 0;
-    }
+    // if (this.position.x <= 0 || this.position.x + this.attackBox.width >= canvas.width) {
+    //     this.velocity.x = 0;
+    // }
+    if (this.position.x < 0)
+        this.position.x = 0;
+    if (this.position.x + this.width > canvas.width) 
+        this.position.x = canvas.width - this.width;
 }
 
 attack() {
