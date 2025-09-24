@@ -1,13 +1,23 @@
+// ---- Setup ----
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = 1024;
 canvas.height = 576;
 
-const gravity = 0.7;
+let showReplay = false;
 let isGameStarted = false;
 let isGameOver = false;
 
-// Classes
+const attackSound = new Audio('resources/sounds/video-game-sword-swing-sfx-409364.mp3');
+const hitSound = new Audio('resources/sounds/mixkit-samurai-sword-impact-2789.wav');
+const gameOverSound = new Audio('resources/sounds/ko-95973.mp3');
+const bgMusic = new Audio('resources/sounds/fighting-battle-warrior-drums-395016.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
+
+const gravity = 0.7;
+
+// ---- Classes ----
 class Sprite {
     constructor({ position, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }) {
         this.position = position;
@@ -28,8 +38,7 @@ class Sprite {
         if (!this.image.complete || this.image.naturalWidth === 0) return;
 
         ctx.save();
-
-        // Flip horizontally if facing left
+        // flip if facing left
         if (!this.facingRight) {
             ctx.translate(this.position.x + this.width / 2, 0);
             ctx.scale(-1, 1);
@@ -47,7 +56,6 @@ class Sprite {
             (this.image.width / this.framesMax) * this.scale,
             this.image.height * this.scale
         );
-
         ctx.restore();
     }
 
@@ -57,7 +65,15 @@ class Sprite {
             if (this.framesCurrent < this.framesMax - 1) {
                 this.framesCurrent++;
             } else {
+                // animation finished — wrap to 0
                 this.framesCurrent = 0;
+                // if this was an attacking animation, reset attack flags if present
+                if (this.isAttacking) {
+                    this.isAttacking = false;
+                }
+                if (this.attackHitDone !== undefined) {
+                    this.attackHitDone = false;
+                }
             }
         }
     }
@@ -78,13 +94,11 @@ class Fighter extends Sprite {
         framesMax = 1,
         offset = { x: 0, y: 0 },
         sprites,
-        attackBox = { offset: {}, width: undefined, height: undefined }
+        attackBox = { offset: {}, width: undefined, height: undefined },
+        attackFrame = 0
     }) {
         super({ position, imageSrc, scale, framesMax, offset });
         this.velocity = velocity;
-        this.width = 50;
-        this.height = 150;
-        this.lastKey;
         this.attackBox = {
             position: { x: this.position.x, y: this.position.y },
             offset: attackBox.offset,
@@ -93,32 +107,25 @@ class Fighter extends Sprite {
         };
         this.color = color;
         this.isAttacking = false;
+        this.attackHitDone = false; // ensures one hit per attack
+        this.attackCooldown = 0; // frames until can attack again
+        this.attackFrame = attackFrame; // frame index where hit should be applied
         this.health = 100;
-        this.framesCurrent = 0;
-        this.framesElapsed = 0;
-        this.framesHold = 5;
-        this.sprites = sprites;
+        this.sprites = sprites || {};
         this.dead = false;
         this.facingRight = true;
 
         for (const sprite in this.sprites) {
-            sprites[sprite].image = new Image();
-            sprites[sprite].image.src = sprites[sprite].imageSrc;
+            this.sprites[sprite].image = new Image();
+            this.sprites[sprite].image.src = this.sprites[sprite].imageSrc;
         }
 
-        this.camerabox = {
-            position: { x: this.position.x, y: this.position.y },
-            width: 50,
-            height: 80
-        };
+        this.camerabox = { position: { x: this.position.x, y: this.position.y }, width: 50, height: 80 };
     }
 
     updateCamerabox() {
         this.camerabox = {
-            position: {
-                x: this.position.x - 320,
-                y: this.position.y - 260
-            },
+            position: { x: this.position.x - 320, y: this.position.y - 260 },
             width: (2 * canvas.width) / 3,
             height: (2 * canvas.height) / 3
         };
@@ -140,14 +147,18 @@ class Fighter extends Sprite {
     }
 
     update() {
+        // draw and animate (unless dead - death animation keeps playing)
         this.draw();
         if (!this.dead) this.animation();
 
+        // update attackBox position
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
 
+        // camerabox
         this.updateCamerabox();
 
+        // physics
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
 
@@ -155,100 +166,78 @@ class Fighter extends Sprite {
         if (this.position.y + this.height >= groundY) {
             this.velocity.y = 0;
             this.position.y = groundY - this.height;
-            this.jumpCount = 0;
         } else {
             this.velocity.y += gravity;
         }
 
-        if (this.position.x <= 0 || this.position.x + this.attackBox.width >= canvas.width) {
+        // bounds
+        if (this.position.x <= 0 || this.position.x + (this.attackBox.width || this.width) >= canvas.width) {
             this.velocity.x = 0;
         }
+
+        // cooldown decrement
+        if (this.attackCooldown > 0) this.attackCooldown--;
     }
 
     attack() {
-        if (this.isAttacking) return;
+        if (this.isAttacking || this.dead || this.attackCooldown > 0) return;
         this.switchSprite('attack1');
         this.isAttacking = true;
+        this.attackHitDone = false;
+        // set a cooldown to avoid spamming (will still be reset when animation ends or by AI)
+        this.attackCooldown = 0; // for player, maybe 0; AI sets its cooldown externally
+        attackSound.currentTime = 0;
+        attackSound.play();
     }
 
     takeHit() {
-        this.health -= 20;
+        if (this.dead) return;
+        this.health -= 10;
+        hitSound.currentTime = 0;
+        hitSound.play();
         if (this.health <= 0) {
             this.switchSprite('death');
         } else {
+            // allow takeHit to interrupt non-attack animations
             this.switchSprite('takeHit');
         }
     }
 
     switchSprite(sprite) {
+        // If currently in death sprite and finished, remain dead
         if (this.image === this.sprites.death.image) {
             if (this.framesCurrent === this.sprites.death.framesMax - 1) {
-                this.isAttacking = false;
                 this.dead = true;
             }
             return;
         }
 
-        if (
-            (this.image === this.sprites.attack1.image && this.framesCurrent < this.sprites.attack1.framesMax - 1) ||
-            (this.image === this.sprites.takeHit.image && this.framesCurrent < this.sprites.takeHit.framesMax - 1)
-        ) return;
+        // Allow takeHit to interrupt idle/run/fall/jump but not attack1
+        if (sprite === 'takeHit' && this.image !== this.sprites.death.image && this.image !== this.sprites.attack1.image) {
+            this.image = this.sprites.takeHit.image;
+            this.framesMax = this.sprites.takeHit.framesMax;
+            this.framesCurrent = 0;
+            return;
+        }
 
-        switch (sprite) {
-            case 'idle':
-                if (this.image !== this.sprites.idle.image) {
-                    this.image = this.sprites.idle.image;
-                    this.framesMax = this.sprites.idle.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
-            case 'run':
-                if (this.image !== this.sprites.run.image) {
-                    this.image = this.sprites.run.image;
-                    this.framesMax = this.sprites.run.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
-            case 'jump':
-                if (this.image !== this.sprites.jump.image) {
-                    this.image = this.sprites.jump.image;
-                    this.framesMax = this.sprites.jump.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
-            case 'fall':
-                if (this.image !== this.sprites.fall.image) {
-                    this.image = this.sprites.fall.image;
-                    this.framesMax = this.sprites.fall.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
-            case 'attack1':
-                if (this.image !== this.sprites.attack1.image) {
-                    this.image = this.sprites.attack1.image;
-                    this.framesMax = this.sprites.attack1.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
-            case 'takeHit':
-                if (this.image !== this.sprites.takeHit.image) {
-                    this.image = this.sprites.takeHit.image;
-                    this.framesMax = this.sprites.takeHit.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
-            case 'death':
-                if (this.image !== this.sprites.death.image) {
-                    this.image = this.sprites.death.image;
-                    this.framesMax = this.sprites.death.framesMax;
-                    this.framesCurrent = 0;
-                }
-                break;
+        // Prevent switching from attack mid-animation
+        if (this.image === this.sprites.attack1.image && this.framesCurrent < this.sprites.attack1.framesMax - 1) return;
+
+        // Standard switching
+        if (this.sprites[sprite] && this.image !== this.sprites[sprite].image) {
+            this.image = this.sprites[sprite].image;
+            this.framesMax = this.sprites[sprite].framesMax;
+            this.framesCurrent = 0;
+        }
+
+        // If switching to death, mark it so switchSprite blocks further changes until finished
+        if (sprite === 'death') {
+            this.dead = false; // will be set true when death animation completes
         }
     }
 }
 
-// Collision & results
+// ---------------- Collision ----------------
 function collision({ char1, char2 }) {
     return (
         char1.attackBox.position.x + char1.attackBox.width >= char2.position.x &&
@@ -258,22 +247,28 @@ function collision({ char1, char2 }) {
     );
 }
 
+// ---------------- Results ----------------
 function determineResults({ player, enemy, timerId }) {
     clearTimeout(timerId);
     isGameOver = true;
     let result = '';
-    if (player.health == enemy.health) result = 'Tie!';
+    if (player.health === enemy.health) result = 'Tie!';
     else if (player.health > enemy.health) result = 'You Won!';
     else result = 'You Lost!';
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    gameOverSound.currentTime = 0;
+    gameOverSound.play();
+    showReplay = true;
     drawEndScreen(result);
 }
 
-// Background
+// ---------------- Background & camera ----------------
 const background = new Sprite({ position: { x: 0, y: 0 }, imageSrc: 'resources/bg-1.jpg' });
 const scaledCanvas = { height: canvas.height, width: canvas.width / 1.3 };
 const camera = { position: { x: 0, y: -618 + scaledCanvas.height } };
 
-// Player & Enemy
+// ---------------- Player & Enemy (with attackFrame and AI cooldown defaults) ----------------
 const player = new Fighter({
     position: { x: 200, y: 0 },
     velocity: { x: 0, y: 0 },
@@ -290,8 +285,10 @@ const player = new Fighter({
         takeHit: { imageSrc: 'resources/Take Hit - white silhouette.png', framesMax: 4 },
         death: { imageSrc: 'resources/Death.png', framesMax: 6 }
     },
-    attackBox: { offset: { x: -80, y: 70 }, width: 160, height: 50 }
+    attackBox: { offset: { x: -80, y: 70 }, width: 160, height: 50 },
+    attackFrame: 4 // player deals hit on frame index 4
 });
+player.attackCooldown = 0; // player manual
 
 const enemy = new Fighter({
     position: { x: 400, y: 100 },
@@ -310,14 +307,17 @@ const enemy = new Fighter({
         takeHit: { imageSrc: 'resources/enemy/Take hit.png', framesMax: 3 },
         death: { imageSrc: 'resources/enemy/Death.png', framesMax: 7 }
     },
-    attackBox: { offset: { x: -20, y: 70 }, width: 170, height: 50 }
+    attackBox: { offset: { x: -20, y: 70 }, width: 170, height: 50 },
+    attackFrame: 2 // enemy deals hit on frame index 2 (0-based)
 });
+enemy.attackCooldown = 0; // controlled by AI
 
-// Key handling
-const key = { a: { pressed: false }, d: { pressed: false }, w: { pressed: false }, s: { pressed: false } };
-let lastKey;
+// ---------------- Input ----------------
+const key = { a: { pressed: false }, d: { pressed: false }, w: { pressed: false } };
+let lastKey = null;
 
-addEventListener('keydown', function (event) {
+addEventListener('keydown', (event) => {
+    if (isGameOver) return; // block input when game over
     switch (event.key) {
         case 'd':
         case 'ArrowRight':
@@ -336,12 +336,13 @@ addEventListener('keydown', function (event) {
             if (player.velocity.y === 0) player.velocity.y = -15;
             break;
         case ' ':
+            // space - attack
             player.attack();
             break;
     }
 });
 
-addEventListener('keyup', function (event) {
+addEventListener('keyup', (event) => {
     switch (event.key) {
         case 'd':
         case 'ArrowRight':
@@ -354,39 +355,65 @@ addEventListener('keyup', function (event) {
     }
 });
 
-// Timer
+// ---------------- Timer ----------------
 let timer = 35;
 let timerId;
 function timerHandler() {
     clearTimeout(timerId);
     if (timer > 0) {
-        document.querySelector('.timer').innerHTML = timer;
+        const timerEl = document.querySelector('.timer');
+        if (timerEl) timerEl.innerHTML = timer;
         timerId = setTimeout(timerHandler, 1000);
         timer--;
+    } else {
+        determineResults({ player, enemy, timerId });
     }
-    if (timer === 0) determineResults({ player, enemy, timerId });
 }
 
-// Animate function
+// ---------------- Main animate loop ----------------
 function animate() {
     if (isGameOver) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(1.3, 1.1);
     ctx.translate(camera.position.x, camera.position.y);
     background.update();
     ctx.restore();
 
+    // Update player first (draw + animation)
     player.update();
-    enemy.facingRight = enemy.position.x > player.position.x;
+
+    // --- Enemy AI (improved) ---
+    const distanceToPlayer = player.position.x - enemy.position.x;
+    enemy.facingRight = distanceToPlayer > 0;
+
+    // Movement behaviour
+    if (Math.abs(distanceToPlayer) > 80) {
+        // approach player
+        enemy.velocity.x = distanceToPlayer > 0 ? 2 : -2;
+        enemy.switchSprite('run');
+    } else {
+        // close enough to consider attack
+        enemy.velocity.x = 0;
+        // if not attacking and cooldown finished, start attack
+        if (!enemy.isAttacking && enemy.attackCooldown === 0) {
+            enemy.attack();
+            enemy.switchSprite('attack1');
+            enemy.attackCooldown = 90; // cooldown (~1.5s at 60fps)
+        } else if (!enemy.isAttacking && enemy.attackCooldown > 0) {
+            // keep idle if waiting
+            enemy.switchSprite('idle');
+        }
+    }
+    // decrement cooldown inside update() as well; but ensure not negative
+    if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+
+    // update enemy (draw + animation + physics)
     enemy.update();
 
-    // Reset horizontal velocity
-    player.velocity.x = 0;
-    enemy.velocity.x = 0;
-
-    // Player movement
+    // --- Player movement handling ---
+    player.velocity.x = 0; // reset, then apply input
     if (key.a.pressed && lastKey === 'a') {
         player.velocity.x = -5;
         player.switchSprite('run');
@@ -396,48 +423,47 @@ function animate() {
         player.switchSprite('run');
         player.leftPanning({ canvas, camera });
     } else {
-        player.switchSprite('idle');
+        // only switch to idle if not in attack or takeHit or death
+        if (!player.isAttacking && player.image !== player.sprites.takeHit.image && !player.dead) {
+            player.switchSprite('idle');
+        }
     }
 
     if (player.velocity.y < 0) player.switchSprite('jump');
     else if (player.velocity.y > 0) player.switchSprite('fall');
 
-    // Enemy AI
-    const distanceToPlayer = player.position.x - enemy.position.x;
-    if (Math.abs(distanceToPlayer) > 20) {
-        enemy.velocity.x = distanceToPlayer > 0 ? 2 : -2;
-        enemy.switchSprite('run');
-    } else {
-        enemy.velocity.x = 0;
+    // ---------------- Collision & attack hit detection (with one-hit-per-attack) ----------------
+
+    // Player attack hit
+    if (player.isAttacking && !player.attackHitDone && player.framesCurrent === player.attackFrame) {
+        if (collision({ char1: player, char2: enemy })) {
+            enemy.takeHit();
+            document.querySelector(".enemy-health")?.style && (document.querySelector(".enemy-health").style.width = enemy.health + '%');
+        }
+        player.attackHitDone = true; // ensure single application per attack
     }
 
-    const attackProbability = 0.01;
-    if (Math.abs(distanceToPlayer) < 100 && Math.random() < attackProbability && !enemy.isAttacking) {
-        enemy.switchSprite('attack1');
-        enemy.attack();
+    // Enemy attack hit
+    if (enemy.isAttacking && !enemy.attackHitDone && enemy.framesCurrent === enemy.attackFrame) {
+        if (collision({ char1: enemy, char2: player })) {
+            player.takeHit();
+            document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = player.health + '%');
+        }
+        enemy.attackHitDone = true;
     }
 
-    if (!enemy.isAttacking && enemy.velocity.x === 0) enemy.switchSprite('idle');
+    // If player attempted to hit while enemy was mid-attack, takeHit will still run immediately if allowed by switchSprite logic
 
-    // Collision
-    if (collision({ char1: player, char2: enemy }) && player.isAttacking && player.framesCurrent === 4) {
-        enemy.takeHit();
-        player.isAttacking = false;
-        document.querySelector(".enemy-health").style.width = enemy.health + '%';
+    // End match check
+    if (player.health <= 0 || enemy.health <= 0) {
+        determineResults({ player, enemy, timerId });
     }
 
-    if (collision({ char1: enemy, char2: player }) && enemy.isAttacking && enemy.framesCurrent === 2) {
-        player.takeHit();
-        enemy.isAttacking = false;
-        document.querySelector(".player-health").style.width = player.health + '%';
-    }
-
-    if (player.health <= 0 || enemy.health <= 0) determineResults({ player, enemy, timerId });
-
+    // Continue loop
     requestAnimationFrame(animate);
 }
 
-// Start & End screens
+// ---------------- Screens ----------------
 function drawStartscreen() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     background.update();
@@ -476,25 +502,81 @@ function drawEndScreen(result) {
     ctx.font = '40px Pixelify Sans';
     ctx.textAlign = 'center';
     ctx.fillText(result, canvas.width / 2, canvas.height / 2);
+
+    if (showReplay) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(boxX + 50, boxY + 60, 200, 40);
+        ctx.fillStyle = 'white';
+        ctx.fillText('Replay', canvas.width / 2, boxY + 90);
+    }
 }
 
-// Event listener to start game
+// ---------------- Start & Replay handling ----------------
 background.image.onload = () => drawStartscreen();
 
-canvas.addEventListener('click', () => {
+canvas.addEventListener('click', (e) => {
+    const boxW = 300, boxH = 120;
+    const boxX = (canvas.width - boxW) / 2;
+    const boxY = (canvas.height - boxH) / 2;
+
+    // Start the game
     if (!isGameStarted && !isGameOver) {
         isGameStarted = true;
+        bgMusic.currentTime = 0;
+        bgMusic.play();
         animate();
         timerHandler();
-    } else if (isGameOver) {
-        player.health = 100;
-        enemy.health = 100;
-        document.querySelector(".enemy-health").style.width = enemy.health + '%';
-        document.querySelector(".player-health").style.width = player.health + '%';
-        timer = 35;
-        isGameOver = false;
-        isGameStarted = true;
-        animate();
-        timerHandler();
+        return;
+    }
+
+    // Replay handling
+    if (isGameOver && showReplay) {
+        if (e.offsetX >= boxX + 50 && e.offsetX <= boxX + 250 &&
+            e.offsetY >= boxY + 60 && e.offsetY <= boxY + 100) {
+
+            // Reset player
+            player.position = { x: 200, y: 0 };
+            player.velocity = { x: 0, y: 0 };
+            player.health = 100;
+            player.dead = false;
+            player.isAttacking = false;
+            player.attackHitDone = false;
+            player.attackCooldown = 0;
+            player.framesCurrent = 0;
+            player.switchSprite('idle');
+            player.facingRight = true;
+
+            // Reset enemy
+            enemy.position = { x: 400, y: 100 };
+            enemy.velocity = { x: 0, y: 0 };
+            enemy.health = 100;
+            enemy.dead = false;
+            enemy.isAttacking = false;
+            enemy.attackHitDone = false;
+            enemy.attackCooldown = 0;
+            enemy.framesCurrent = 0;
+            enemy.switchSprite('idle');
+            enemy.facingRight = false;
+
+            // Reset UI
+            document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = '100%');
+            document.querySelector(".enemy-health")?.style && (document.querySelector(".enemy-health").style.width = '100%');
+
+            // Reset timer and flags
+            timer = 35;
+            isGameOver = false;
+            showReplay = false;
+            key.a.pressed = false;
+            key.d.pressed = false;
+            lastKey = null;
+
+            // Restart music and loop
+            bgMusic.currentTime = 0;
+            bgMusic.play();
+
+            // Start game loop & timer
+            animate();
+            timerHandler();
+        }
     }
 });
