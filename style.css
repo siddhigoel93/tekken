@@ -96,13 +96,14 @@ canvas{
     width: 100%;
 }
 
-/* .result-text{
-    position: absolute;
-    color: white;
-    align-items: center;
-    justify-content: center;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    display: none;
-} */
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+.health-hit {
+  animation: shake 0.3s ease;
+}

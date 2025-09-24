@@ -202,40 +202,76 @@ class Fighter extends Sprite {
             this.switchSprite('takeHit');
         }
     }
-
-    switchSprite(sprite) {
-        // If currently in death sprite and finished, remain dead
-        if (this.image === this.sprites.death.image) {
-            if (this.framesCurrent === this.sprites.death.framesMax - 1) {
-                this.dead = true;
-            }
-            return;
+switchSprite(sprite) {
+    // Death overrides everything
+    if (this.image === this.sprites.death.image) {
+        if (this.framesCurrent === this.sprites.death.framesMax - 1) {
+            this.dead = true;
         }
+        return;
+    }
 
-        // Allow takeHit to interrupt idle/run/fall/jump but not attack1
-        if (sprite === 'takeHit' && this.image !== this.sprites.death.image && this.image !== this.sprites.attack1.image) {
+    // TakeHit should override ANY state except death
+    if (sprite === 'takeHit') {
+        if (this.image !== this.sprites.takeHit.image) {
             this.image = this.sprites.takeHit.image;
             this.framesMax = this.sprites.takeHit.framesMax;
             this.framesCurrent = 0;
-            return;
         }
+        return;
+    }
 
-        // Prevent switching from attack mid-animation
-        if (this.image === this.sprites.attack1.image && this.framesCurrent < this.sprites.attack1.framesMax - 1) return;
+    // Prevent switching away mid-attack
+    if (this.image === this.sprites.attack1.image &&
+        this.framesCurrent < this.sprites.attack1.framesMax - 1) return;
 
-        // Standard switching
-        if (this.sprites[sprite] && this.image !== this.sprites[sprite].image) {
-            this.image = this.sprites[sprite].image;
-            this.framesMax = this.sprites[sprite].framesMax;
-            this.framesCurrent = 0;
-        }
-
-        // If switching to death, mark it so switchSprite blocks further changes until finished
-        if (sprite === 'death') {
-            this.dead = false; // will be set true when death animation completes
-        }
+    switch (sprite) {
+        case 'idle':
+            if (this.image !== this.sprites.idle.image) {
+                this.image = this.sprites.idle.image;
+                this.framesMax = this.sprites.idle.framesMax;
+                this.framesCurrent = 0;
+            }
+            break;
+        case 'run':
+            if (this.image !== this.sprites.run.image) {
+                this.image = this.sprites.run.image;
+                this.framesMax = this.sprites.run.framesMax;
+                this.framesCurrent = 0;
+            }
+            break;
+        case 'jump':
+            if (this.image !== this.sprites.jump.image) {
+                this.image = this.sprites.jump.image;
+                this.framesMax = this.sprites.jump.framesMax;
+                this.framesCurrent = 0;
+            }
+            break;
+        case 'fall':
+            if (this.image !== this.sprites.fall.image) {
+                this.image = this.sprites.fall.image;
+                this.framesMax = this.sprites.fall.framesMax;
+                this.framesCurrent = 0;
+            }
+            break;
+        case 'attack1':
+            if (this.image !== this.sprites.attack1.image) {
+                this.image = this.sprites.attack1.image;
+                this.framesMax = this.sprites.attack1.framesMax;
+                this.framesCurrent = 0;
+                this.isAttacking = true;
+            }
+            break;
+        case 'death':
+            if (this.image !== this.sprites.death.image) {
+                this.image = this.sprites.death.image;
+                this.framesMax = this.sprites.death.framesMax;
+                this.framesCurrent = 0;
+            }
+            break;
     }
 }
+
 
 // ---------------- Collision ----------------
 function collision({ char1, char2 }) {
@@ -443,14 +479,17 @@ function animate() {
         player.attackHitDone = true; // ensure single application per attack
     }
 
-    // Enemy attack hit
-    if (enemy.isAttacking && !enemy.attackHitDone && enemy.framesCurrent === enemy.attackFrame) {
-        if (collision({ char1: enemy, char2: player })) {
-            player.takeHit();
-            document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = player.health + '%');
-        }
-        enemy.attackHitDone = true;
-    }
+    // Player takes damage
+if (collision({ char1: enemy, char2: player }) &&
+    enemy.isAttacking && !enemy.attackHitDone &&
+    enemy.framesCurrent === enemy.attackFrame) {
+    player.takeHit();
+    const playerHealthBar = document.querySelector(".player-health");
+    playerHealthBar.style.width = player.health + '%';
+    playerHealthBar.classList.add("health-hit");
+    setTimeout(() => playerHealthBar.classList.remove("health-hit"), 300);
+}
+
 
     // If player attempted to hit while enemy was mid-attack, takeHit will still run immediately if allowed by switchSprite logic
 
