@@ -4,7 +4,8 @@ canvas.width = 1024;
 canvas.height = 576;
 ctx.fillRect(0, 0, canvas.width, canvas.height)
 const gravity = 0.7;
-
+let isGameStarted = false;
+let isGameOver = false;
 // classes
 class Sprite {
     constructor({ position, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }) {
@@ -142,6 +143,14 @@ class Fighter extends Sprite {
             camera.position.x -= this.velocity.x;
         }
     }
+    // if (this.position.x <= 0 || this.position.x + this.attackBox.width >= canvas.width) {
+    //     this.velocity.x = 0;
+    // }
+    if (this.position.x < 0)
+        this.position.x = 0;
+    if (this.position.x + this.width > canvas.width) 
+        this.position.x = canvas.width - this.width;
+}
     rightPanning({ canvas, camera }) {
         if (this.camerabox.position.x <= 0) return;
         if (this.camerabox.position.x <= Math.abs(camera.position.x)) {
@@ -278,16 +287,22 @@ function collision({ char1, char2 }) {
 }
 function determineResults({ player, enemy, timerId }) {
     clearTimeout(timerId);
-    document.querySelector('.result-text').style.display = 'flex';
+    isGameOver = true;
+    let result = '';
+    // document.querySelector('.result-text').style.display = 'flex';
     if (player.health == enemy.health) {
-        document.querySelector('.result-text').innerHTML = 'Tie!';
+        // document.querySelector('.result-text').innerHTML = 'Tie!';
+        result = 'Tie!';
     }
     else if (player.health > enemy.health) {
-        document.querySelector('.result-text').innerHTML = 'You Won!';
+        // document.querySelector('.result-text').innerHTML = 'You Won!';
+        result = 'You Won!';
     }
     else {
-        document.querySelector('.result-text').innerHTML = 'You Lose!';
+        // document.querySelector('.result-text').innerHTML = 'You Lose!';
+        result = 'You Lost!';
     }
+    drawEndScreen(result);
 }
 
 const background = new Sprite({
@@ -333,7 +348,12 @@ addEventListener('keydown', function (event) {
             lastKey = 'a';
             player.facingRight = false;  // Immediately face left on left key
             break;
-
+        case 'w' :
+        case 'ArrowUp':
+            if (player.velocity.y === 0) {  
+                player.velocity.y = -15;     
+            }
+             break;
         case ' ':
             player.attack();
             break;
@@ -449,17 +469,19 @@ const enemy = new Fighter({
 let timer = 35;
 let timerId;
 function timerHandler() {
+    clearTimeout(timerId);
     if (timer > 0) {
+        document.querySelector('.timer').innerHTML = timer;
         timerId = setTimeout(timerHandler, 1000);
         timer--;
-        document.querySelector('.timer').innerHTML = timer;
+        
     }
     if (timer == 0) {
         determineResults({ player, enemy, timerId });
     }
 }
 
-timerHandler();
+// timerHandler();
 
 const backgroundresourcesHeight = 618;
 const camera = {
@@ -470,6 +492,8 @@ const camera = {
 }
 
 function animate() {
+    if(isGameOver)
+        return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(1.3, 1.1);
@@ -561,4 +585,76 @@ function animate() {
 
     requestAnimationFrame(animate);
 }
-animate();
+
+function drawStartscreen(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    background.update();
+
+    ctx.fillStyle= 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    const boxW = 300;
+    const boxH = 120;
+    const boxX = (canvas.width / 2) - (boxW / 2);
+    const boxY = (canvas.height / 2) - (boxH / 2);
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    ctx.fillStyle='black';
+    ctx.font = '40px Pixelify Sans';
+    ctx.textAlign='center';
+    ctx.fillText('Click to play' , canvas.width/2 , canvas.height/2);
+
+}
+
+function drawEndScreen(result){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    background.update();
+
+    ctx.fillStyle= 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    const boxW = 300;
+    const boxH = 120;
+    const boxX = (canvas.width / 2) - (boxW / 2);
+    const boxY = (canvas.height / 2) - (boxH / 2);
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    ctx.fillStyle='black';
+    ctx.font = '40px Pixelify Sans';
+    ctx.textAlign='center';
+    ctx.fillText(result , canvas.width/2 , canvas.height/2);
+
+}
+background.image.onload = () => {
+    drawStartscreen();
+};
+
+canvas.addEventListener('click', () => {
+    if (!isGameStarted && !isGameOver) {
+        isGameStarted = true;
+        animate();
+        timerHandler();
+    }
+    else if(isGameOver) {
+        
+        player.health = 100;
+        enemy.health = 100;
+        document.querySelector(".enemy-health").style.width = enemy.health + '%';
+        document.querySelector(".player-health").style.width = player.health + '%';
+
+        timer = 35;
+        isGameOver = false;
+        isGameStarted = true;
+
+        animate();
+        timerHandler();
+    }
+});
