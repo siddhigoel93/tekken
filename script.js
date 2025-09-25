@@ -94,8 +94,9 @@ class Fighter extends Sprite {
         scale = 1,
         framesMax = 1,
         sprites,
-        attackBox = { offset: {x:0,y:0}, width: 0, height: 0 },
+        attackBox = { offset: { x: 0, y: 0 }, width: 0, height: 0 },
         bodyBox = { offset: { x: 0, y: 0 }, width: 50, height: 150 },
+        attackFrame = 0
     }) {
         super({ position, imageSrc, scale, framesMax, offset })
 
@@ -114,7 +115,7 @@ class Fighter extends Sprite {
         };
         this.bodyBox = bodyBox;
         this.color = color
-        this.isAttacking
+        this.isAttacking = false;
         this.health = 100
         this.framesCurrent = 0
         this.framesElapsed = 0
@@ -123,6 +124,7 @@ class Fighter extends Sprite {
         this.dead = false
         this.facingRight = true
         this.attackCooldown = 0
+        this.attackFrame = attackFrame;
 
         // Load all sprite images
         for (const sprite in this.sprites) {
@@ -160,28 +162,22 @@ class Fighter extends Sprite {
         if (!this.dead) this.animation();
 
         // --- Debug Body Box ---
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-        ctx.fillRect(
-            this.position.x + this.bodyBox.offset.x,
-            this.position.y + this.bodyBox.offset.y,
-            this.bodyBox.width,
-            this.bodyBox.height
-        );
+        // ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+        // ctx.fillRect(
+        //     this.position.x + this.bodyBox.offset.x,
+        //     this.position.y + this.bodyBox.offset.y,
+        //     this.bodyBox.width,
+        //     this.bodyBox.height
+        // );
 
-        // --- Debug Attack Box ---
-        ctx.fillStyle = 'rgba(0, 0, 255, 0.3)'; // semi-transparent blue
-        ctx.fillRect(
-            this.attackBox.position.x,
-            this.attackBox.position.y,
-            this.attackBox.width,
-            this.attackBox.height
-        );
 
         // update attackBox position
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
-        ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
-        ctx.fillStyle = 'blue';
+
+        // --- Debug Attack Box ---
+        // ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
+        // ctx.fillStyle = 'blue';
 
         // camerabox
         this.updateCamerabox();
@@ -273,27 +269,15 @@ class Fighter extends Sprite {
 
 // ---------------- Collision ----------------
 function collision({ char1, char2 }) {
-    const box1 = {
-        x: char1.attackBox.position.x,
-        y: char1.attackBox.position.y,
-        w: char1.attackBox.width,
-        h: char1.attackBox.height
-    }
-
-    const box2 = {
-        x: char2.position.x + char2.bodyBox.offset.x,
-        y: char2.position.y + char2.bodyBox.offset.y,
-        w: char2.bodyBox.width,
-        h: char2.bodyBox.height
-    }
-
     return (
-        box1.x + box1.w >= box2.x &&
-        box1.x <= box2.x + box2.w &&
-        box1.y + box1.h >= box2.y &&
-        box1.y <= box2.y + box2.h
-    )
+        char1.attackBox.position.x < char2.position.x + char2.bodyBox.offset.x + char2.bodyBox.width &&
+        char1.attackBox.position.x + char1.attackBox.width > char2.position.x + char2.bodyBox.offset.x &&
+        char1.attackBox.position.y < char2.position.y + char2.bodyBox.offset.y + char2.bodyBox.height &&
+        char1.attackBox.position.y + char1.attackBox.height > char2.position.y + char2.bodyBox.offset.y
+    );
 }
+
+
 
 // ---------------- Results ----------------
 function determineResults({ player, enemy, timerId }) {
@@ -342,7 +326,7 @@ const player = new Fighter({
         height: 60
     },
     bodyBox: { offset: { x: 0, y: 50 }, width: 100, height: 150 },
-    attackFrame: 4 // player deals hit on frame index 4
+    attackFrame: 3 // player deals hit on frame index 4
 });
 player.attackCooldown = 0; // player manual
 
@@ -366,7 +350,7 @@ const enemy = new Fighter({
     },
     attackBox: { offset: { x: -50, y: 70 }, width: 200, height: 50 },
     bodyBox: { offset: { x: 0, y: 50 }, width: 100, height: 150 },
-    attackFrame: 2 // enemy deals hit on frame index 2 (0-based)
+    attackFrame: 3 // enemy deals hit on frame index 2 (0-based)
 });
 enemy.attackCooldown = 0; // controlled by AI
 
@@ -418,7 +402,7 @@ addEventListener('keyup', (event) => {
 });
 
 // ---------------- Timer ----------------
-let timer = 105;
+let timer = 60;
 let timerId;
 function timerHandler() {
     clearTimeout(timerId);
@@ -433,12 +417,12 @@ function timerHandler() {
 }
 
 function flipEnemy(distanceToPlayer) {
-    if (distanceToPlayer<0) {
+    if (distanceToPlayer < 0) {
         enemy.facingRight = true;
         enemy.attackBox.offset.x = -50
         enemy.bodyBox.offset.x = 0
     }
-    else{
+    else {
         enemy.facingRight = false;
         enemy.attackBox.offset.x = -110
         enemy.bodyBox.offset.x = -60
@@ -511,22 +495,23 @@ function animate() {
     // ---------------- Collision & attack hit detection (with one-hit-per-attack) ----------------
 
     // Player attack hit
-    if (player.isAttacking && !player.attackHitDone && player.framesCurrent === player.attackFrame) {
+    if (player.isAttacking && !player.attackHitDone && player.framesCurrent >= player.attackFrame) {
         if (collision({ char1: player, char2: enemy })) {
             enemy.takeHit();
-            document.querySelector(".enemy-health")?.style && (document.querySelector(".enemy-health").style.width = enemy.health + '%');
+            document.querySelector(".enemy-health").style.width = enemy.health + "%";
         }
         player.attackHitDone = true; // ensure single application per attack
     }
 
     // Enemy attack hit
-    if (enemy.isAttacking && !enemy.attackHitDone && enemy.framesCurrent === enemy.attackFrame) {
+    if (enemy.isAttacking && !enemy.attackHitDone && enemy.framesCurrent >= enemy.attackFrame) {
         if (collision({ char1: enemy, char2: player })) {
             player.takeHit();
-            document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = player.health + '%');
+            document.querySelector(".player-health").style.width = player.health + "%";
         }
         enemy.attackHitDone = true;
     }
+
 
     // If player attempted to hit while enemy was mid-attack, takeHit will still run immediately if allowed by switchSprite logic
 
@@ -639,7 +624,7 @@ canvas.addEventListener('click', (e) => {
             document.querySelector(".enemy-health")?.style && (document.querySelector(".enemy-health").style.width = '100%');
 
             // Reset timer and flags
-            timer = 35;
+            timer = 60;
             isGameOver = false;
             showReplay = false;
             key.a.pressed = false;
