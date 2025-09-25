@@ -525,6 +525,20 @@ function drawEndScreen(result) {
     }
 }
 
+function resetFighter(fighter, position, facingRight = true) {
+    fighter.position = { x : position.x,
+                         y : position.y}; 
+    fighter.velocity = { x: 0, y: 0 };
+    fighter.health = 100;
+    fighter.dead = false;
+    fighter.isAttacking = false;
+    fighter.attackHitDone = false;
+    fighter.attackCooldown = 0;
+    fighter.framesCurrent = 0;
+    fighter.framesElapsed = 0;
+    fighter.facingRight = facingRight;
+    fighter.switchSprite('idle');
+    }
 // ---------------- Start & Replay handling ----------------
 background.image.onload = () => drawStartscreen();
 
@@ -548,29 +562,8 @@ canvas.addEventListener('click', (e) => {
         if (e.offsetX >= boxX + 50 && e.offsetX <= boxX + 250 &&
             e.offsetY >= boxY + 60 && e.offsetY <= boxY + 100) {
 
-            // Reset player
-            player.position = { x: 200, y: 0 };
-            player.velocity = { x: 0, y: 0 };
-            player.health = 100;
-            player.dead = false;
-            player.isAttacking = false;
-            player.attackHitDone = false;
-            player.attackCooldown = 0;
-            player.framesCurrent = 0;
-            player.switchSprite('idle');
-            player.facingRight = true;
-
-            // Reset enemy
-            enemy.position = { x: 400, y: 100 };
-            enemy.velocity = { x: 0, y: 0 };
-            enemy.health = 100;
-            enemy.dead = false;
-            enemy.isAttacking = false;
-            enemy.attackHitDone = false;
-            enemy.attackCooldown = 0;
-            enemy.framesCurrent = 0;
-            enemy.switchSprite('idle');
-            enemy.facingRight = false;
+             resetFighter(player, {x:200,y:0} , true); 
+             resetFighter(enemy, {x:400,y:100} , false);
 
             // Reset UI
             document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = '100%');
