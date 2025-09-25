@@ -432,6 +432,19 @@ function animate() {
     if (player.velocity.y < 0) player.switchSprite('jump');
     else if (player.velocity.y > 0) player.switchSprite('fall');
 
+    if (player.position.x < 0) {
+      player.position.x = 0;
+    } 
+    if (player.position.x + player.width > canvas.width) {
+      player.position.x = canvas.width - player.width;
+    }
+    if (enemy.position.x < 0) {
+      enemy.position.x = 0;
+    } 
+    if (enemy.position.x + enemy.width > canvas.width) {
+      enemy.position.x = enemy.width - player.width;
+    }
+
     // ---------------- Collision & attack hit detection (with one-hit-per-attack) ----------------
 
     // Player attack hit
