@@ -233,7 +233,7 @@ class Fighter extends Sprite {
             if (this.framesCurrent === this.sprites.death.framesMax - 1) {
                 this.dead = true;
             }
-            return;
+            if (sprite !== 'idle') return;
         }
 
         // Allow takeHit to interrupt idle/run/fall/jump but not attack1
@@ -276,8 +276,6 @@ function collision({ char1, char2 }) {
         char1.attackBox.position.y + char1.attackBox.height > char2.position.y + char2.bodyBox.offset.y
     );
 }
-
-
 
 // ---------------- Results ----------------
 function determineResults({ player, enemy, timerId }) {
@@ -427,6 +425,60 @@ function flipEnemy(distanceToPlayer) {
         enemy.attackBox.offset.x = -110
         enemy.bodyBox.offset.x = -60
     }
+}
+
+function restartGame() {
+    isGameOver = false;
+    showReplay = false;
+    isGameStarted = true;
+    lastKey = null;
+    player.image = player.sprites.idle.image;
+    player.framesMax = player.sprites.idle.framesMax;
+    player.framesCurrent = 0;
+    enemy.image = enemy.sprites.idle.image;
+    enemy.framesMax = enemy.sprites.idle.framesMax;
+    enemy.framesCurrent = 0;
+
+
+
+    // Reset player
+    player.health = 100;
+    player.dead = false;
+    player.switchSprite("idle");
+    player.velocity = { x: 0, y: 0 };
+    player.position = { x: 200, y: 0 };
+    player.isAttacking = false;
+    player.attackHitDone = false;
+    player.attackCooldown = 0;
+    player.framesCurrent = 0;
+    player.facingRight = true;
+
+    // Reset enemy
+    enemy.health = 100;
+    enemy.dead = false;
+    enemy.switchSprite("idle");
+    enemy.velocity = { x: 0, y: 0 };
+    enemy.position = { x: 400, y: 100 };
+    enemy.isAttacking = false;
+    enemy.attackHitDone = false;
+    enemy.attackCooldown = 0;
+    enemy.framesCurrent = 0;
+    enemy.facingRight = false;
+
+    // Reset health bars
+    document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = '100%');
+    document.querySelector(".enemy-health")?.style && (document.querySelector(".enemy-health").style.width = '100%');
+
+    // Restart music and loop
+    bgMusic.currentTime = 0;
+    bgMusic.play();
+
+    // Restart timer
+    timer = 60;
+
+    // Start game loop & timer
+    animate();
+    timerHandler();
 }
 
 // ---------------- Main animate loop ----------------
@@ -594,50 +646,7 @@ canvas.addEventListener('click', (e) => {
     if (isGameOver && showReplay) {
         if (e.offsetX >= boxX + 50 && e.offsetX <= boxX + 250 &&
             e.offsetY >= boxY + 60 && e.offsetY <= boxY + 100) {
-
-            // Reset player
-            player.position = { x: 200, y: 0 };
-            player.velocity = { x: 0, y: 0 };
-            player.health = 100;
-            player.dead = false;
-            player.isAttacking = false;
-            player.attackHitDone = false;
-            player.attackCooldown = 0;
-            player.framesCurrent = 0;
-            player.switchSprite('idle');
-            player.facingRight = true;
-
-            // Reset enemy
-            enemy.position = { x: 400, y: 100 };
-            enemy.velocity = { x: 0, y: 0 };
-            enemy.health = 100;
-            enemy.dead = false;
-            enemy.isAttacking = false;
-            enemy.attackHitDone = false;
-            enemy.attackCooldown = 0;
-            enemy.framesCurrent = 0;
-            enemy.switchSprite('idle');
-            enemy.facingRight = false;
-
-            // Reset UI
-            document.querySelector(".player-health")?.style && (document.querySelector(".player-health").style.width = '100%');
-            document.querySelector(".enemy-health")?.style && (document.querySelector(".enemy-health").style.width = '100%');
-
-            // Reset timer and flags
-            timer = 60;
-            isGameOver = false;
-            showReplay = false;
-            key.a.pressed = false;
-            key.d.pressed = false;
-            lastKey = null;
-
-            // Restart music and loop
-            bgMusic.currentTime = 0;
-            bgMusic.play();
-
-            // Start game loop & timer
-            animate();
-            timerHandler();
+            restartGame();
         }
     }
 });
