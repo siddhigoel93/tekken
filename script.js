@@ -317,6 +317,7 @@ const key = { a: { pressed: false }, d: { pressed: false }, w: { pressed: false 
 let lastKey = null;
 
 addEventListener('keydown', (event) => {
+    event.preventDefault();
     if (isGameOver) return; // block input when game over
     switch (event.key) {
         case 'd':
