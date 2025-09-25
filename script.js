@@ -300,7 +300,7 @@ const player = new Fighter({
         takeHit: { imageSrc: 'resources/Take Hit - white silhouette.png', framesMax: 4 },
         death: { imageSrc: 'resources/Death.png', framesMax: 6 }
     },
-    attackBox: { offset: { x: -100, y: 70 }, width: 160, height: 50 },
+    attackBox: { offset: { x: 0, y: 70 }, width: 160, height: 50 },
     attackFrame: 4 // player deals hit on frame index 4
 });
 player.attackCooldown = 0; // player manual
@@ -322,7 +322,7 @@ const enemy = new Fighter({
         takeHit: { imageSrc: 'resources/enemy/Take hit.png', framesMax: 3 },
         death: { imageSrc: 'resources/enemy/Death.png', framesMax: 7 }
     },
-    attackBox: { offset: { x: -20, y: 70 }, width: 170, height: 50 },
+    attackBox: { offset: { x: -10, y: 70 }, width: 170, height: 50 },
     attackFrame: 2 // enemy deals hit on frame index 2 (0-based)
 });
 enemy.attackCooldown = 0; // controlled by AI
@@ -339,7 +339,7 @@ addEventListener('keydown', (event) => {
             key.d.pressed = true;
             lastKey = 'd';
             player.facingRight = true;
-            player.attackBox.offset.x = -100
+            player.attackBox.offset.x = 0
             break;
         case 'a':
         case 'ArrowLeft':
@@ -387,15 +387,6 @@ function timerHandler() {
     }
 }
 
-function faceRight(distanceToPlayer) {
-    if (distanceToPlayer < 0) {
-        enemy.facingRight = true;
-        enemy.attackBox.offset.x = -10;
-    } else {
-        enemy.facingRight = false;
-        enemy.attackBox.offset.x = -110;
-    }
-}
 
 // ---------------- Main animate loop ----------------
 function animate() {
@@ -413,7 +404,7 @@ function animate() {
 
     // --- Enemy Facing ---
     const distanceToPlayer = player.position.x - enemy.position.x;
-    faceRight(distanceToPlayer);
+    enemy.facingRight = distanceToPlayer<0;
 
     // Movement behaviour
     if (Math.abs(distanceToPlayer) > 80) {
