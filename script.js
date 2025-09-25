@@ -161,23 +161,9 @@ class Fighter extends Sprite {
         this.draw();
         if (!this.dead) this.animation();
 
-        // --- Debug Body Box ---
-        // ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-        // ctx.fillRect(
-        //     this.position.x + this.bodyBox.offset.x,
-        //     this.position.y + this.bodyBox.offset.y,
-        //     this.bodyBox.width,
-        //     this.bodyBox.height
-        // );
-
-
         // update attackBox position
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
-
-        // --- Debug Attack Box ---
-        // ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
-        // ctx.fillStyle = 'blue';
 
         // camerabox
         this.updateCamerabox();
@@ -547,17 +533,17 @@ function animate() {
     if (player.velocity.y < 0) player.switchSprite('jump');
     else if (player.velocity.y > 0) player.switchSprite('fall');
 
-    if (player.position.x < 0) {
-      player.position.x = 0;
+    if (player.position.x < 45) {
+      player.position.x = 45;
     } 
-    if (player.position.x + player.width > canvas.width) {
-      player.position.x = canvas.width - player.width;
+    if (player.position.x + player.width > canvas.width - 45) {
+      player.position.x = canvas.width - player.width - 45;
     }
-    if (enemy.position.x < 0) {
-      enemy.position.x = 0;
+    if (enemy.position.x < 40) {
+      enemy.position.x = 40;
     } 
-    if (enemy.position.x + enemy.width > canvas.width) {
-      enemy.position.x = enemy.width - player.width;
+    if (enemy.position.x + enemy.width > canvas.width +45) {
+      enemy.position.x = enemy.width - player.width +45;
     }
 
     // ---------------- Collision & attack hit detection (with one-hit-per-attack) ----------------
@@ -579,9 +565,6 @@ function animate() {
         }
         enemy.attackHitDone = true;
     }
-
-
-    // If player attempted to hit while enemy was mid-attack, takeHit will still run immediately if allowed by switchSprite logic
 
     // End match check
     if (player.health <= 0 || enemy.health <= 0) {
@@ -622,7 +605,7 @@ function drawEndScreen(result) {
     const boxW = 300, boxH = 120;
     const boxX = (canvas.width - boxW) / 2, boxY = (canvas.height - boxH) / 2;
 
-    ctx.fillStyle = 'white';
+ ctx.fillStyle = 'white';
     ctx.fillRect(boxX, boxY, boxW, boxH);
     ctx.strokeStyle = 'black';
     ctx.strokeRect(boxX, boxY, boxW, boxH);
@@ -630,19 +613,15 @@ function drawEndScreen(result) {
     ctx.fillStyle = 'black';
     ctx.font = '40px Pixelify Sans';
     ctx.textAlign = 'center';
-    ctx.fillText(result, boxX + boxW / 2, boxY + boxH / 2);
-   
+    ctx.fillText(result, canvas.width / 2, canvas.height / 2);
+
     if (showReplay) {
-        const replayW = 200, replayH = 40;
-        const replayX = (canvas.width - replayW) / 2;
-        const replayY = boxY + boxH + 20;
         ctx.fillStyle = 'green';
-        ctx.fillRect(replayX, replayY, replayW, replayH);
+        ctx.fillRect(boxX + 50, boxY + 60, 200, 40);
         ctx.fillStyle = 'white';
-        ctx.fillText('Replay', replayX + replayW / 2, (replayY + replayH / 2)+6);
+        ctx.fillText('Replay', canvas.width / 2, boxY + 90);
     }
 }
-
 
 // ---------------- Start & Replay handling ----------------
 background.image.onload = () => drawStartscreen();
@@ -652,9 +631,6 @@ canvas.addEventListener('click', (e) => {
     const boxX = (canvas.width - boxW) / 2;
     const boxY = (canvas.height - boxH) / 2;
 
-    const replayW = 200, replayH = 40;
-    const replayX = (canvas.width - replayW) / 2;
-    const replayY = boxY + boxH + 20;
 
     // Start the game
     if (!isGameStarted && !isGameOver) {
@@ -668,11 +644,9 @@ canvas.addEventListener('click', (e) => {
 
     // Replay handling
     if (isGameOver && showReplay) {
-
         if (e.offsetX >= boxX + 50 && e.offsetX <= boxX + 250 &&
             e.offsetY >= boxY + 60 && e.offsetY <= boxY + 100) {
             restartGame();
-
         }
     }
 });
