@@ -495,7 +495,7 @@ function drawStartscreen() {
     ctx.fillStyle = 'black';
     ctx.font = '40px Pixelify Sans';
     ctx.textAlign = 'center';
-    ctx.fillText('Click to play', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('Click to play', boxX + boxW / 2, boxY + boxH / 2);
 }
 
 function drawEndScreen(result) {
@@ -515,13 +515,16 @@ function drawEndScreen(result) {
     ctx.fillStyle = 'black';
     ctx.font = '40px Pixelify Sans';
     ctx.textAlign = 'center';
-    ctx.fillText(result, canvas.width / 2, canvas.height / 2);
-
+    ctx.fillText(result, boxX + boxW / 2, boxY + boxH / 2);
+   
     if (showReplay) {
+        const replayW = 200, replayH = 40;
+        const replayX = (canvas.width - replayW) / 2;
+        const replayY = boxY + boxH + 20;
         ctx.fillStyle = 'green';
-        ctx.fillRect(boxX + 50, boxY + 60, 200, 40);
+        ctx.fillRect(replayX, replayY, replayW, replayH);
         ctx.fillStyle = 'white';
-        ctx.fillText('Replay', canvas.width / 2, boxY + 90);
+        ctx.fillText('Replay', replayX + replayW / 2, (replayY + replayH / 2)+6);
     }
 }
 
@@ -547,6 +550,10 @@ canvas.addEventListener('click', (e) => {
     const boxX = (canvas.width - boxW) / 2;
     const boxY = (canvas.height - boxH) / 2;
 
+    const replayW = 200, replayH = 40;
+    const replayX = (canvas.width - replayW) / 2;
+    const replayY = boxY + boxH + 20;
+
     // Start the game
     if (!isGameStarted && !isGameOver) {
         isGameStarted = true;
@@ -559,8 +566,8 @@ canvas.addEventListener('click', (e) => {
 
     // Replay handling
     if (isGameOver && showReplay) {
-        if (e.offsetX >= boxX + 50 && e.offsetX <= boxX + 250 &&
-            e.offsetY >= boxY + 60 && e.offsetY <= boxY + 100) {
+        if ( e.offsetX >= replayX && e.offsetX <= replayX + replayW &&
+        e.offsetY >= replayY && e.offsetY <= replayY + replayH) {
 
              resetFighter(player, {x:200,y:0} , true); 
              resetFighter(enemy, {x:400,y:100} , false);
