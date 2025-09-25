@@ -21,7 +21,7 @@ const gravity = 0.7;
 class Sprite {
     constructor({ position, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }) {
         this.position = position;
-        this.width = 50;
+        this.width = 130;
         this.height = 150;
         this.image = new Image();
         this.image.src = imageSrc;
@@ -151,9 +151,24 @@ class Fighter extends Sprite {
         this.draw();
         if (!this.dead) this.animation();
 
+        // --- Debug Body Box (the visible character rectangle) ---
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)'; // semi-transparent green
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+
+        // --- Debug Attack Box ---
+        ctx.fillStyle = 'rgba(0, 0, 255, 0.3)'; // semi-transparent blue
+        ctx.fillRect(
+            this.attackBox.position.x,
+            this.attackBox.position.y,
+            this.attackBox.width,
+            this.attackBox.height
+        );
+
         // update attackBox position
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
+        ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
+        ctx.fillStyle = 'blue';
 
         // camerabox
         this.updateCamerabox();
@@ -275,7 +290,7 @@ const player = new Fighter({
     imageSrc: 'resources/Idle.png',
     framesMax: 8,
     scale: 2.5,
-    offset: { x: 215, y: 65 },
+    offset: { x: 130, y: 65 },
     sprites: {
         idle: { imageSrc: 'resources/Idle.png', framesMax: 8 },
         run: { imageSrc: 'resources/Run.png', framesMax: 8 },
@@ -285,7 +300,7 @@ const player = new Fighter({
         takeHit: { imageSrc: 'resources/Take Hit - white silhouette.png', framesMax: 4 },
         death: { imageSrc: 'resources/Death.png', framesMax: 6 }
     },
-    attackBox: { offset: { x: -80, y: 70 }, width: 160, height: 50 },
+    attackBox: { offset: { x: -100, y: 70 }, width: 160, height: 50 },
     attackFrame: 4 // player deals hit on frame index 4
 });
 player.attackCooldown = 0; // player manual
@@ -324,12 +339,14 @@ addEventListener('keydown', (event) => {
             key.d.pressed = true;
             lastKey = 'd';
             player.facingRight = true;
+            player.attackBox.offset.x = -100
             break;
         case 'a':
         case 'ArrowLeft':
             key.a.pressed = true;
             lastKey = 'a';
             player.facingRight = false;
+            player.attackBox.offset.x = -25;
             break;
         case 'w':
         case 'ArrowUp':
@@ -370,6 +387,16 @@ function timerHandler() {
     }
 }
 
+function faceRight(distanceToPlayer) {
+    if (distanceToPlayer < 0) {
+        enemy.facingRight = true;
+        enemy.attackBox.offset.x = -10;
+    } else {
+        enemy.facingRight = false;
+        enemy.attackBox.offset.x = -110;
+    }
+}
+
 // ---------------- Main animate loop ----------------
 function animate() {
     if (isGameOver) return;
@@ -384,9 +411,9 @@ function animate() {
     // Update player first (draw + animation)
     player.update();
 
-    // --- Enemy AI (improved) ---
+    // --- Enemy Facing ---
     const distanceToPlayer = player.position.x - enemy.position.x;
-    enemy.facingRight = distanceToPlayer > 0;
+    faceRight(distanceToPlayer);
 
     // Movement behaviour
     if (Math.abs(distanceToPlayer) > 80) {
