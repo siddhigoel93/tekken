@@ -161,9 +161,22 @@ class Fighter extends Sprite {
         this.draw();
         if (!this.dead) this.animation();
 
+        // --- Debug Body Box ---
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+        ctx.fillRect(
+            this.position.x + this.bodyBox.offset.x,
+            this.position.y + this.bodyBox.offset.y,
+            this.bodyBox.width,
+            this.bodyBox.height
+        );
+
         // update attackBox position
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
+
+        //   --- Debug Attack Box ---
+        ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
+        ctx.fillStyle = 'blue';
 
         // camerabox
         this.updateCamerabox();
@@ -256,10 +269,10 @@ class Fighter extends Sprite {
 // ---------------- Collision ----------------
 function collision({ char1, char2 }) {
     return (
-        char1.attackBox.position.x < char2.position.x + char2.bodyBox.offset.x + char2.bodyBox.width &&
-        char1.attackBox.position.x + char1.attackBox.width > char2.position.x + char2.bodyBox.offset.x &&
-        char1.attackBox.position.y < char2.position.y + char2.bodyBox.offset.y + char2.bodyBox.height &&
-        char1.attackBox.position.y + char1.attackBox.height > char2.position.y + char2.bodyBox.offset.y
+        player.attackBox.position.x < enemy.attackBox.position.x + enemy.attackBox.width &&
+        player.attackBox.position.x + player.attackBox.width > enemy.attackBox.position.x &&
+        player.attackBox.position.y < enemy.attackBox.position.y + enemy.attackBox.height &&
+        player.attackBox.position.y + player.attackBox.height > enemy.attackBox.position.y
     );
 }
 
@@ -310,7 +323,7 @@ const player = new Fighter({
         height: 60
     },
     bodyBox: { offset: { x: 0, y: 50 }, width: 100, height: 150 },
-    attackFrame: 3 // player deals hit on frame index 4
+    attackFrame: 3 // player deals hit on frame index 3
 });
 player.attackCooldown = 0; // player manual
 
@@ -439,6 +452,10 @@ function restartGame() {
     player.attackCooldown = 0;
     player.framesCurrent = 0;
     player.facingRight = true;
+    player.attackBox.offset.x = -50;
+    player.attackBox.offset.y = 70;
+    player.bodyBox.offset.x = 0;
+    player.bodyBox.offset.y = 50;
 
     // Reset enemy
     enemy.health = 100;
@@ -534,16 +551,16 @@ function animate() {
     else if (player.velocity.y > 0) player.switchSprite('fall');
 
     if (player.position.x < 45) {
-      player.position.x = 45;
-    } 
+        player.position.x = 45;
+    }
     if (player.position.x + player.width > canvas.width - 45) {
-      player.position.x = canvas.width - player.width - 45;
+        player.position.x = canvas.width - player.width - 45;
     }
     if (enemy.position.x < 40) {
-      enemy.position.x = 40;
-    } 
-    if (enemy.position.x + enemy.width > canvas.width +45) {
-      enemy.position.x = enemy.width - player.width +45;
+        enemy.position.x = 40;
+    }
+    if (enemy.position.x + enemy.width > canvas.width + 45) {
+        enemy.position.x = enemy.width - player.width + 45;
     }
 
     // ---------------- Collision & attack hit detection (with one-hit-per-attack) ----------------
@@ -593,7 +610,7 @@ function drawStartscreen() {
     ctx.fillStyle = 'black';
     ctx.font = '40px Pixelify Sans';
     ctx.textAlign = 'center';
-    ctx.fillText('Click to play', boxX + boxW / 2, boxY + boxH / 2);
+    ctx.fillText('Click to play', canvas.width / 2, canvas.height / 2);
 }
 
 function drawEndScreen(result) {
@@ -605,7 +622,7 @@ function drawEndScreen(result) {
     const boxW = 300, boxH = 120;
     const boxX = (canvas.width - boxW) / 2, boxY = (canvas.height - boxH) / 2;
 
- ctx.fillStyle = 'white';
+    ctx.fillStyle = 'white';
     ctx.fillRect(boxX, boxY, boxW, boxH);
     ctx.strokeStyle = 'black';
     ctx.strokeRect(boxX, boxY, boxW, boxH);
