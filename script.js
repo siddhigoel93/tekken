@@ -161,22 +161,9 @@ class Fighter extends Sprite {
         this.draw();
         if (!this.dead) this.animation();
 
-        // --- Debug Body Box ---
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-        ctx.fillRect(
-            this.position.x + this.bodyBox.offset.x,
-            this.position.y + this.bodyBox.offset.y,
-            this.bodyBox.width,
-            this.bodyBox.height
-        );
-
         // update attackBox position
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
-
-        //   --- Debug Attack Box ---
-        ctx.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height);
-        ctx.fillStyle = 'blue';
 
         // camerabox
         this.updateCamerabox();
