@@ -301,7 +301,7 @@ const player = new Fighter({
         attack1: { imageSrc: 'resources/Attack1.png', framesMax: 4, offset: { x: 140, y: 65 } },
         attack2: { imageSrc: 'resources/Attack2.png', framesMax: 4, offset: { x: 140, y: 65 } },
         attack3: { imageSrc: 'resources/Attack3.png', framesMax: 4, offset: { x: 140, y: 65 } },
-        takeHit: { imageSrc: 'resources/Take hit.png', framesMax: 4, offset: { x: 155, y: 65 } },
+        takeHit: { imageSrc: 'resources/TakeHit.png', framesMax: 4, offset: { x: 155, y: 65 } },
         death: { imageSrc: 'resources/Death.png', framesMax: 6, offset: { x: 155, y: 65 } }
     },
     attackBox: {
@@ -329,7 +329,7 @@ const enemy = new Fighter({
         fall: { imageSrc: 'resources/enemy/Fall.png', framesMax: 2 },
         attack1: { imageSrc: 'resources/enemy/Attack1.png', framesMax: 4 },
         attack2: { imageSrc: 'resources/enemy/Attack2.png', framesMax: 4 },
-        takeHit: { imageSrc: 'resources/enemy/Take hit.png', framesMax: 3 },
+        takeHit: { imageSrc: 'resources/enemy/TakeHit.png', framesMax: 3 },
         death: { imageSrc: 'resources/enemy/Death.png', framesMax: 7 }
     },
     attackBox: { offset: { x: -50, y: 70 }, width: 200, height: 50 },
